@@ -25,25 +25,6 @@ const client = new Client({
 
 client.commands = new Collection();
 
-const moons = [
-    { date: '2024-01-25', name: 'Wolf Moon' },
-    { date: '2024-02-24', name: 'Snow Moon' },
-    { date: '2024-03-25', name: 'Worm Moon' },
-    { date: '2024-04-23', name: 'Pink Moon' },
-    { date: '2024-05-23', name: 'Flower Moon' },
-    { date: '2024-06-21', name: 'Strawberry Moon' },
-    { date: '2024-07-21', name: 'Buck Moon' },
-    { date: '2024-08-19', name: 'Sturgeon Moon' },
-    { date: '2024-09-17', name: 'Harvest Moon' },
-    { date: '2024-10-17', name: 'Hunter\'s Moon' },
-    { date: '2024-11-15', name: 'Beaver Moon' },
-    { date: '2024-12-15', name: 'Cold Moon' }
-]
-// write a simple loop for moons
-for (let i = 0; i < cars.length; i++) {
-    text += cars[i] + "<br>";
-}
-
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
