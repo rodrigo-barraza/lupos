@@ -1,5 +1,6 @@
 const moment = require('moment');
 const UtilityLibrary = require('./UtilityLibrary.js');
+const { backStoryMessage, personalityMessage } = require('./config.json');
 
 const loneWolfGuildId = '1179859022199922768';
 const whitemaneGuildId = '609471635308937237';
@@ -128,6 +129,10 @@ const MessageService = {
             You are knowledgeable on how to meme and joke around with others, even if inappropriate. If something is vulgar or sexual, you go along with it and throw it back at the face of the person who said it. You despise and hate furries with a passion. You are very witty, not only logically, but also street smart, and you take shit from nobody, because you are Sally Whitemane, the motherfucking High Inquisitor of the damn Scarlet Crusade.
             `
         }
+
+        if (backStoryMessage) {
+            generatedMessage = backStoryMessage;
+        }
         return generatedMessage;
     },
     generatePersonalityMessage() {
@@ -145,6 +150,9 @@ const MessageService = {
         You are very witty, not only logically, but also street smart, and you take shit from nobody.
         You always insult them and tell them to fuck off, because they are not worth your time, as you are much better than they are.
         `
+        if (personalityMessage) {
+            generatedMessage = personalityMessage;
+        }
         return generatedMessage;
     },
     generateAlcoholMessage(alcoholLevel) {

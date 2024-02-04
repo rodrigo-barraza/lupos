@@ -25,6 +25,25 @@ const client = new Client({
 
 client.commands = new Collection();
 
+const moons = [
+    { date: '2024-01-25', name: 'Wolf Moon' },
+    { date: '2024-02-24', name: 'Snow Moon' },
+    { date: '2024-03-25', name: 'Worm Moon' },
+    { date: '2024-04-23', name: 'Pink Moon' },
+    { date: '2024-05-23', name: 'Flower Moon' },
+    { date: '2024-06-21', name: 'Strawberry Moon' },
+    { date: '2024-07-21', name: 'Buck Moon' },
+    { date: '2024-08-19', name: 'Sturgeon Moon' },
+    { date: '2024-09-17', name: 'Harvest Moon' },
+    { date: '2024-10-17', name: 'Hunter\'s Moon' },
+    { date: '2024-11-15', name: 'Beaver Moon' },
+    { date: '2024-12-15', name: 'Cold Moon' }
+]
+// write a simple loop for moons
+for (let i = 0; i < cars.length; i++) {
+    text += cars[i] + "<br>";
+}
+
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
@@ -161,24 +180,24 @@ client.on('messageCreate', async (message) => {
     console.log(conversation)
     let response 
     if (localSwitch === 'local'){
-        response = await fetch('http://localhost:3000/v1/chat/completions', {
+        response = await fetch('http://localhost:581/v1/chat/completions', {
             method: 'POST',
             headers: {
             'Content-Type': 'application/json'
             },
             body: JSON.stringify({
             messages: conversation,
-            temperature: 0.7,
-            max_tokens: -1,
+            temperature: 1,
+            max_tokens: 1200,
             stream: false
             })
       }).catch(error => console.error('Error:', error));
         response = await response.json();
     } else if(localSwitch === 'gpt'){
         response = await openai.chat.completions.create({
-            // model: 'gpt-3.5-turbo-1106',
+            model: 'gpt-3.5-turbo-1106',
             // model: 'gpt-3.5-turbo',
-            model: 'gpt-4-1106-preview',
+            // model: 'gpt-4-1106-preview',
             messages: conversation,
             temperature: 1.1,
         }).catch((error) => console.error('OpenAI Error:\n', error));
