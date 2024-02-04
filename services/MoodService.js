@@ -1,5 +1,5 @@
 const { ActivityType } = require('discord.js');
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 
 let moodLevel = 0;
 

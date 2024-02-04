@@ -1,4 +1,4 @@
-const UtilityLibrary = require('./UtilityLibrary.js');
+const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 
 let hungerChannelId = '1198326193984913470';
 let guildId = '1004528256072044705'; // the clam

@@ -1,4 +1,4 @@
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 
 let hygieneLevel = 100;
 let hygieneChannelId = '1198326193984913470';

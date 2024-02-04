@@ -1,4 +1,4 @@
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const HungerService = require('./HungerService.js');
 const ThirstService = require('./ThirstService.js');
 const BathroomService = require('./BathroomService.js');

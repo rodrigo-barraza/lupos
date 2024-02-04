@@ -3,17 +3,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, Partials, ChannelType, Message } = require('discord.js');
 const { OpenAI } = require('openai');
-const UtilityLibrary = require('./UtilityLibrary.js');
-const AlcoholService = require('./AlcoholService.js');
-const HungerService = require('./HungerService.js');
-const ThirstService = require('./ThirstService.js');
-const HygieneService = require('./HygieneService.js');
-const OpenAIWrapper = require('./OpenAIWrapper.js');
-const EnergyService = require('./EnergyService.js');
-const BathroomService = require('./BathroomService.js');
-const ActionsService = require('./ActionsService.js');
-const MoodService = require('./MoodService.js');
-const MessageService = require('./MessageService.js');
+const UtilityLibrary = require('./libraries/UtilityLibrary.js');
+const AlcoholService = require('./services/AlcoholService.js');
+const HungerService = require('./services/HungerService.js');
+const ThirstService = require('./services/ThirstService.js');
+const HygieneService = require('./services/HygieneService.js');
+const OpenAIWrapper = require('./wrappers/OpenAIWrapper.js');
+const EnergyService = require('./services/EnergyService.js');
+const BathroomService = require('./services/BathroomService.js');
+const ActionsService = require('./services/ActionsService.js');
+const MoodService = require('./services/MoodService.js');
+const MessageService = require('./services/MessageService.js');
 
 const client = new Client({
     intents: ['Guilds', 'GuildMembers', 'GuildPresences', 'GuildMessages', 'MessageContent', 'DirectMessages'],
@@ -119,10 +119,11 @@ client.on('messageCreate', async (message) => {
 
     conversation.push({
         role: 'system',
-        content: `${await MoodService.generateMoodMessage(message, client, openai)} ${MessageService.generateCurrentConversationUser(message)}
+        content: `${MessageService.generateCurrentConversationUser(message)}
             ${MessageService.generateAssistantMessage()}
             ${MessageService.generateBackstoryMessage(message.guild?.id)}
             ${MessageService.generatePersonalityMessage()}
+            ${await MoodService.generateMoodMessage(message, client, openai)}
             ${MessageService.generateKnowledgeMessage(message)}
             ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}
             ${MessageService.generateServerSpecificMessage(message.guild?.id)}
@@ -176,9 +177,9 @@ client.on('messageCreate', async (message) => {
         response = await response.json();
     } else if(localSwitch === 'gpt'){
         response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo-1106',
+            // model: 'gpt-3.5-turbo-1106',
             // model: 'gpt-3.5-turbo',
-            // model: 'gpt-4-1106-preview',
+            model: 'gpt-4-1106-preview',
             messages: conversation,
             temperature: 1.1,
         }).catch((error) => console.error('OpenAI Error:\n', error));

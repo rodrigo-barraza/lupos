@@ -1,4 +1,4 @@
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 
 let alcoholLevel = 0;
 

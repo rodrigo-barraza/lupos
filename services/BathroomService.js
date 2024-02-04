@@ -1,4 +1,4 @@
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 
 let bathroomLevel = 0;
 let hungerChannelId = '1198326193984913470';

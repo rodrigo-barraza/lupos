@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const UtilityLibrary = require('../../UtilityLibrary.js');
+const UtilityLibrary = require('../../libraries/UtilityLibrary.js');
 const moment = require('moment');
 
 const fullMoons = [

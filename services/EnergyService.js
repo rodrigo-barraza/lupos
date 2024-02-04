@@ -1,4 +1,4 @@
-const OpenAIWrapper = require('./OpenAIWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 
 let energyLevel = 100;
 let energyChannelId = '1198326193984913470';
