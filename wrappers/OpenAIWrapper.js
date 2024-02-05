@@ -87,35 +87,35 @@ const OpenAIWrapper = {
             clearInterval(sendTypingInterval);
             return response.choices[0].message.content;
     },
-    async generateInCharacterResponseSpecial(client, systemContent, userContent, openai) {
-        client.channels.cache.get(hungerChannelId).sendTyping();
-        const sendTypingInterval = setInterval(() => { client.channels.cache.get(hungerChannelId).sendTyping() }, 5000);
-        // const message = client.channels.cache.get(hungerChannelId).messages.cache.last();
-        let conversation = [
-            {
-                role: 'system',
-                content: systemContent
-            },
-            {
-                role: 'user',
-                name: 'self',
-                content: `
-                ${userContent}
-                ${UtilityLibrary.generateBackstoryMessage(guildId)}
-                ${UtilityLibrary.generatePersonalityMessage()}
-                ${UtilityLibrary.generateServerSpecificMessage(guildId)}`,
-            }
-        ]
+    // async generateInCharacterResponseSpecial(client, systemContent, userContent, openai) {
+    //     client.channels.cache.get(hungerChannelId).sendTyping();
+    //     const sendTypingInterval = setInterval(() => { client.channels.cache.get(hungerChannelId).sendTyping() }, 5000);
+    //     // const message = client.channels.cache.get(hungerChannelId).messages.cache.last();
+    //     let conversation = [
+    //         {
+    //             role: 'system',
+    //             content: systemContent
+    //         },
+    //         {
+    //             role: 'user',
+    //             name: 'self',
+    //             content: `
+    //             ${userContent}
+    //             ${UtilityLibrary.generateBackstoryMessage(guildId)}
+    //             ${UtilityLibrary.generatePersonalityMessage()}
+    //             ${UtilityLibrary.generateServerSpecificMessage(guildId)}`,
+    //         }
+    //     ]
     
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo-1106',
-            messages: conversation,
-            temperature: 1,
-        }).catch((error) => console.error('OpenAI Error:\n', error));
+    //     const response = await openai.chat.completions.create({
+    //         model: 'gpt-3.5-turbo-1106',
+    //         messages: conversation,
+    //         temperature: 1,
+    //     }).catch((error) => console.error('OpenAI Error:\n', error));
 
-        clearInterval(sendTypingInterval);
-        return response.choices[0].message.content;
-    }
+    //     clearInterval(sendTypingInterval);
+    //     return response.choices[0].message.content;
+    // }
 };
 
 module.exports = OpenAIWrapper;
