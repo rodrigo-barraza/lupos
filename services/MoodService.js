@@ -145,21 +145,19 @@ const MoodService = {
     async generateMoodMessage(message, client, openAI) {
         const moodTemperature = await OpenAIWrapper.generateMoodTemperature(message, openAI);
 
-        if (moodTemperature <= -10) {
-            MoodService.decreaseMoodLevel(3);
-        } else if (moodTemperature >= -9 && moodTemperature <= -7) {
-            MoodService.decreaseMoodLevel(2);
-        } else if (moodTemperature >= -6 && moodTemperature <= -3) {
-            MoodService.decreaseMoodLevel(1);
-        } else if (moodTemperature >= -2 && moodTemperature <= 2) {
-            // Do nothing
-        } else if (moodTemperature >= 3 && moodTemperature <= 6) {
-            MoodService.increaseMoodLevel(1);
-        } else if (moodTemperature >= 7 && moodTemperature <= 9) {
-            MoodService.increaseMoodLevel(2);
-        } else if (moodTemperature >= 10) {
-            MoodService.increaseMoodLevel(3);
-        }
+        if (moodTemperature <= -10) { MoodService.decreaseMoodLevel(6);
+        } else if (moodTemperature >= -9 && moodTemperature <= -8) { MoodService.decreaseMoodLevel(5);
+        } else if (moodTemperature >= -7 && moodTemperature <= -6) { MoodService.decreaseMoodLevel(4);
+        } else if (moodTemperature >= -5 && moodTemperature <= -4) { MoodService.decreaseMoodLevel(3);
+        } else if (moodTemperature >= -3 && moodTemperature <= -2) { MoodService.decreaseMoodLevel(2);
+        } else if (moodTemperature == -1) { MoodService.decreaseMoodLevel(1);
+        } else if (moodTemperature == 0) {
+        } else if (moodTemperature == 1) { MoodService.increaseMoodLevel(1);
+        } else if (moodTemperature >= 2 && moodTemperature <= 3) { MoodService.increaseMoodLevel(2);
+        } else if (moodTemperature >= 4 && moodTemperature <= 5) { MoodService.increaseMoodLevel(3);
+        } else if (moodTemperature >= 6 && moodTemperature <= 7) { MoodService.increaseMoodLevel(4);
+        } else if (moodTemperature >= 8 && moodTemperature <= 9) { MoodService.increaseMoodLevel(5);
+        } else if (moodTemperature >= 10) { MoodService.increaseMoodLevel(6); }
 
         const currentMood = moods.find(mood => mood.level === moodLevel);
         client.user.setActivity(`${currentMood.emoji} I'm ${currentMood.name} (${moodLevel})`, { type: ActivityType.Custom });
