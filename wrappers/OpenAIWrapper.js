@@ -1,10 +1,23 @@
+require('dotenv/config');
+const { OpenAI } = require('openai');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
 
 let hungerChannelId = '1198326193984913470';
 let guildId = '1004528256072044705'; // the clam
 
+const open_ai = new OpenAI({apiKey: process.env.OPENAI_KEY})
+
 const OpenAIWrapper = {
+    async generateResponse(conversation) {
+        return response = await open_ai.chat.completions.create({
+            temperature: 1,
+            model: 'gpt-3.5-turbo-1106',
+            // model: 'gpt-3.5-turbo',
+            // model: 'gpt-4-1106-preview',
+            messages: conversation,
+        }).catch((error) => console.error('OpenAI Error:\n', error));
+    },
     async generateMoodTemperature(message, openai) {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
@@ -33,30 +46,30 @@ const OpenAIWrapper = {
         clearInterval(sendTypingInterval);
         return temperatureResponse.choices[0].message.content;
     },
-    async generateResponse(roleContent, message, openai) {
-        await message.channel.sendTyping();
-        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-        let conversation = [
-            {
-                role: 'system',
-                content: roleContent
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: message.content,
-            }
-        ]
+    // async generateResponse(roleContent, message, openai) {
+    //     // await message.channel.sendTyping();
+    //     const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    //     let conversation = [
+    //         {
+    //             role: 'system',
+    //             content: roleContent
+    //         },
+    //         {
+    //             role: 'user',
+    //             name: UtilityLibrary.getUsernameNoSpaces(message),
+    //             content: message.content,
+    //         }
+    //     ]
     
-        const response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: conversation,
-            temperature: 1,
-        }).catch((error) => console.error('OpenAI Error:\n', error));
+    //     const response = await openai.chat.completions.create({
+    //         model: 'gpt-3.5-turbo',
+    //         messages: conversation,
+    //         temperature: 1,
+    //     }).catch((error) => console.error('OpenAI Error:\n', error));
 
-        clearInterval(sendTypingInterval);
-        return response.choices[0].message.content;
-    },
+    //     clearInterval(sendTypingInterval);
+    //     return response.choices[0].message.content;
+    // },
     async generateInCharacterResponse(content, message, openai) {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
@@ -64,11 +77,11 @@ const OpenAIWrapper = {
                 {
                     role: 'system',
                     content: `
+                        ${MessageService.generateCurrentConversationUser(message)}
+                        ${MessageService.generateBackstoryMessage(message?.guild?.id)}
+                        ${MessageService.generatePersonalityMessage()}
+                        ${MessageService.generateServerSpecificMessage(message?.guild?.id)}
                         ${content}
-                        ${UtilityLibrary.generateCurrentConversationUser(message)}
-                        ${UtilityLibrary.generateBackstoryMessage(message.guild.id)}
-                        ${UtilityLibrary.generatePersonalityMessage()}
-                        ${UtilityLibrary.generateServerSpecificMessage(message.guild.id)}
                     `
                 },
                 {
@@ -86,6 +99,29 @@ const OpenAIWrapper = {
     
             clearInterval(sendTypingInterval);
             return response.choices[0].message.content;
+    },
+    async generateInCharacterResponse2(systemContent, userContent, interaction) {
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                    ${MessageService.generateCurrentConversationUser(interaction)}
+                    ${MessageService.generateBackstoryMessage(interaction.guild.id)}
+                    ${MessageService.generatePersonalityMessage()}
+                    ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
+                    ${MessageService.generateKnowledgeMessage(interaction)}
+                    ${systemContent}
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(interaction),
+                content: userContent,
+            }
+        ]
+
+        const response = await OpenAIWrapper.generateResponse(conversation);
+        return response.choices[0].message.content;
     },
     // async generateInCharacterResponseSpecial(client, systemContent, userContent, openai) {
     //     client.channels.cache.get(hungerChannelId).sendTyping();

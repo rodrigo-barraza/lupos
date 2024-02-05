@@ -1,5 +1,6 @@
 const { ActivityType } = require('discord.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
+const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 
 let moodLevel = 0;
 
@@ -120,11 +121,25 @@ const moods = [
 ]
 
 const MoodService = {
+    instantiate() {
+        const client = DiscordWrapper.getClient();
+        const currentMood = moods.find(mood => mood.level === moodLevel);
+        client.user.setActivity(`Mood: ${currentMood.emoji} Neutral (${moodLevel})`, { type: ActivityType.Custom });
+    },
     getMoodLevel() {
         return moodLevel;
     },
+    getMoodName() {
+        return moods.find(mood => mood.level === moodLevel).name;
+    },
     setMoodLevel(level) {
         moodLevel = level;
+        MoodService.onMoodLevelChange();
+    },
+    onMoodLevelChange() {
+        const client = DiscordWrapper.getClient();
+        const currentMood = moods.find(mood => mood.level === moodLevel);
+        client.user.setActivity(`Mood: ${currentMood.emoji} ${currentMood.name} (${moodLevel})`, { type: ActivityType.Custom });
     },
     increaseMoodLevel(multiplier = 1) {
         let currentMoodLevel = MoodService.getMoodLevel();
@@ -142,7 +157,7 @@ const MoodService = {
         console.log(`Mood level decreased by ${multiplier}`);
         return currentMoodLevel;
     },
-    async generateMoodMessage(message, client, openAI) {
+    async generateMoodMessage(message, openAI) {
         const moodTemperature = await OpenAIWrapper.generateMoodTemperature(message, openAI);
 
         if (moodTemperature <= -10) { MoodService.decreaseMoodLevel(6);
@@ -160,7 +175,6 @@ const MoodService = {
         } else if (moodTemperature >= 10) { MoodService.increaseMoodLevel(6); }
 
         const currentMood = moods.find(mood => mood.level === moodLevel);
-        client.user.setActivity(`${currentMood.emoji} I'm ${currentMood.name} (${moodLevel})`, { type: ActivityType.Custom });
         let moodResponse = currentMood.description;
 
         console.log(`Current mood level: ${moodLevel}`);

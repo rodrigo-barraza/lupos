@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const UtilityLibrary = require('../../libraries/UtilityLibrary.js');
+const OpenAIWrapper = require('../../wrappers/OpenAIWrapper.js');
 const moment = require('moment');
 
 const fullMoons = [
@@ -27,8 +27,13 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('moon')
 		.setDescription('Find when the next full moon is.'),
-	async execute(interaction) {
-        const message = `The next full moon is the ${getNextFullMoon().name} on ${moment(getNextFullMoon().date).format('MMMM Do, YYYY')}.`;
-		await interaction.reply(message);
-	},
+    async execute(interaction) {
+        await interaction.deferReply();
+        const systemContent = `
+            You will answer, in character, when the next full moon is. The next full moon is the ${getNextFullMoon().name} on ${moment(getNextFullMoon().date).format('MMMM Do, YYYY')}. You will either answer by saying the date, or by saying how many more days are left until the next full moon."
+        `;
+        const userContent = 'When is the next full moon?'
+        const characterResponse = await OpenAIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
+        await interaction.editReply(characterResponse);
+    },
 };

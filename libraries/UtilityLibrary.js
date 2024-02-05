@@ -5,7 +5,12 @@ const UtilityLibrary = {
         }
     },
     getUsernameNoSpaces(message) {
-        return message.author.displayName ? message.author.displayName.replace(/\s+/g, '_').replace(/[^\w\s]/gi, '') : message.author.username.replace(/\s+/g, '_').replace(/[^\w\s]/gi, '')
+        let name = message?.author?.displayName || message?.author?.username || message?.user?.username;
+        let username = '';
+        if (name) {
+            username = name ? name.replace(/\s+/g, '_').replace(/[^\w\s]/gi, '') : ''
+        }
+        return username;
     },
     getUsername(message) {
         return message.author.displayName ? message.author.displayName : message.author.username;

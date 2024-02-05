@@ -1,27 +1,15 @@
 require('dotenv/config');
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, Events, GatewayIntentBits, Partials, ChannelType, Message } = require('discord.js');
+const { Collection, Events, ChannelType } = require('discord.js');
 const { OpenAI } = require('openai');
 const UtilityLibrary = require('./libraries/UtilityLibrary.js');
 const AlcoholService = require('./services/AlcoholService.js');
-const HungerService = require('./services/HungerService.js');
-const ThirstService = require('./services/ThirstService.js');
-const HygieneService = require('./services/HygieneService.js');
-const OpenAIWrapper = require('./wrappers/OpenAIWrapper.js');
-const EnergyService = require('./services/EnergyService.js');
-const BathroomService = require('./services/BathroomService.js');
-const ActionsService = require('./services/ActionsService.js');
 const MoodService = require('./services/MoodService.js');
 const MessageService = require('./services/MessageService.js');
+const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 
-const client = new Client({
-    intents: ['Guilds', 'GuildMembers', 'GuildPresences', 'GuildMessages', 'MessageContent', 'DirectMessages'],
-    partials: [
-      Partials.Channel,
-      Partials.Message
-    ]
-});
+const client = DiscordWrapper.instantiate();
 
 client.commands = new Collection();
 
@@ -71,8 +59,9 @@ const localSwitch = 'gpt'
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    AlcoholService.instantiate();
+    MoodService.instantiate();
     // UtilityLibrary.getAndSetMood(client)
-    // AlcoholService.instantiate();
     // HungerService.instantiate(client, openai);
     // ThirstService.instantiate(client, openai);
     // HygieneService.instantiate(client, openai);
@@ -93,22 +82,22 @@ client.on('messageCreate', async (message) => {
     // if it's a DM and a message from the bot, ignore it
     if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) return;
 
-    if (message.content.includes('🍺') || message.content.includes('🍻') || message.content.includes('🍷') || message.content.includes('🍸') || message.content.includes('🍹') || message.content.includes('🍾') || message.content.includes('🍶') || message.content.includes('🥃')) {
-        await AlcoholService.drinkAlcohol(message, openai);
-        return;
-    }
+    // if (message.content.includes('🍺') || message.content.includes('🍻') || message.content.includes('🍷') || message.content.includes('🍸') || message.content.includes('🍹') || message.content.includes('🍾') || message.content.includes('🍶') || message.content.includes('🥃')) {
+    //     await AlcoholService.drinkAlcohol(message, openai);
+    //     return;
+    // }
 
     // if includes food emojis
-    const foodEmojis = ['🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🥝', '🍅', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊', '🥢', '🍽', '🍴', '🥄'];
+    // const foodEmojis = ['🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🥝', '🍅', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊', '🥢', '🍽', '🍴', '🥄'];
 
-    const drinkEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊'];
+    // const drinkEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊'];
 
-    const alcoholEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃'];
+    // const alcoholEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃'];
 
-    if (foodEmojis.some(emoji => message.content.includes(emoji))) {
-        await ActionsService.eat(message, openai);
-        return;
-    }
+    // if (foodEmojis.some(emoji => message.content.includes(emoji))) {
+    //     await ActionsService.eat(message, openai);
+    //     return;
+    // }
 
     await message.channel.sendTyping();
     const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
@@ -119,7 +108,8 @@ client.on('messageCreate', async (message) => {
 
     conversation.push({
         role: 'system',
-        content: `${MessageService.generateCurrentConversationUser(message)}
+        content: `${AlcoholService.generateAlcoholSystemPrompt()}
+            ${MessageService.generateCurrentConversationUser(message)}
             ${MessageService.generateAssistantMessage()}
             ${MessageService.generateBackstoryMessage(message.guild?.id)}
             ${MessageService.generatePersonalityMessage()}
@@ -177,9 +167,10 @@ client.on('messageCreate', async (message) => {
         response = await response.json();
     } else if(localSwitch === 'gpt'){
         response = await openai.chat.completions.create({
-            // model: 'gpt-3.5-turbo-1106',
+            model: 'gpt-3.5-turbo-1106',
             // model: 'gpt-3.5-turbo',
-            model: 'gpt-4-1106-preview',
+            temperature: 1,
+            // model: 'gpt-4-1106-preview',
             messages: conversation,
             temperature: 1.1,
         }).catch((error) => console.error('OpenAI Error:\n', error));

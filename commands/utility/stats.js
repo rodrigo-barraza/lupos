@@ -5,19 +5,20 @@ const ThirstService = require('../../services/ThirstService.js');
 const EnergyService = require('../../services/EnergyService.js');
 const HygieneService = require('../../services/HygieneService.js');
 const BathroomService = require('../../services/BathroomService.js');
+const MoodService = require('../../services/MoodService.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('tamagotchi')
-		.setDescription('Provides information about Lupos.'),
+		.setName('stats')
+		.setDescription('Provides general statistics about Lupos.'),
 	async execute(interaction) {
         const hungerLevel = HungerService.getHungerLevel();
         const thirstLevel = ThirstService.getThirstLevel();
-        const alcoholLevel = AlcoholService.getAlcoholLevel();
-        const moodLevel = 0
+        const alcoholLevel = AlcoholService.getAlcoholLevel() * 10;
+        const moodName = MoodService.getMoodName();
         const healthState = 'Healthy';
-        const weight = 5;
-        const height = 12;
+        const weight = 250;
+        const height = 182;
         const age = 1;
         const energyLevel = EnergyService.getEnergyLevel();
         const boredomLevel = 100;
@@ -25,7 +26,7 @@ module.exports = {
         const hygieneLevel = HygieneService.getHygieneLevel();
 		// await interaction.reply(`Hunger level is ${hungerLevel}.\n
         // Alcohol level is ${alcoholLevel}.\n
-        // Mood level is ${moodLevel}.\n
+        // Mood level is ${moodName}.\n
         // Health state is ${healthState}.\n
         // Weight is ${weight}.\n
         // Age is ${age}.\n
@@ -33,24 +34,24 @@ module.exports = {
 
         // reply with an embed
         const Embed = new EmbedBuilder()
-        .setTitle(`Pet Statistics`)
-        .setDescription('The different properties of our community pet')
+        .setTitle(`Lupos Statistics`)
+        .setDescription('The different properties of our local shadow wolf.')
         // .setColor(0x00FF00)
         .addFields(
-            { name: 'Hunger', value: `${hungerLevel}%`, inline: true },
-            { name: 'Thirst', value: `${thirstLevel}%`, inline: true },
+            // { name: 'Hunger', value: `${hungerLevel}%`, inline: true },
+            // { name: 'Thirst', value: `${thirstLevel}%`, inline: true },
             // { name: 'Boredom', value: `${boredomLevel}%`, inline: true },
-            { name: 'Energy', value: `${energyLevel}%`, inline: true },
-            { name: 'Hygiene', value: `${hygieneLevel}%`, inline: true },
+            // { name: 'Energy', value: `${energyLevel}%`, inline: true },
+            // { name: 'Hygiene', value: `${hygieneLevel}%`, inline: true },
 
-            { name: 'Intoxicated', value: `${alcoholLevel}%`, inline: true },
-            { name: 'Bathroom', value: `${bathroomLevel}%`, inline: true },
+            { name: 'Drunk', value: `${alcoholLevel}%`, inline: true },
+            // { name: 'Bathroom', value: `${bathroomLevel}%`, inline: true },
 
             
 
             { name: '\u200B', value: '\u200B' },
             { name: 'Personality', value: `Spicy`, inline: true },
-            { name: 'Mood', value: `${moodLevel}`, inline: true },
+            { name: 'Mood', value: `${moodName}`, inline: true },
             { name: 'Health', value: `${healthState}`, inline: true },
             { name: 'Weight', value: `${weight}lbs`, inline: true },
             { name: 'Height', value: `${height}cm`, inline: true },
