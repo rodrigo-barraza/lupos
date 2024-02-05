@@ -157,8 +157,8 @@ const MoodService = {
         console.log(`Mood level decreased by ${multiplier}`);
         return currentMoodLevel;
     },
-    async generateMoodMessage(message, openAI) {
-        const moodTemperature = await OpenAIWrapper.generateMoodTemperature(message, openAI);
+    async generateMoodMessage(message) {
+        const moodTemperature = await OpenAIWrapper.generateMoodTemperature(message);
 
         if (moodTemperature <= -10) { MoodService.decreaseMoodLevel(6);
         } else if (moodTemperature >= -9 && moodTemperature <= -8) { MoodService.decreaseMoodLevel(5);

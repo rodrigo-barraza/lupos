@@ -18,7 +18,7 @@ const OpenAIWrapper = {
             messages: conversation,
         }).catch((error) => console.error('OpenAI Error:\n', error));
     },
-    async generateMoodTemperature(message, openai) {
+    async generateMoodTemperature(message) {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
         let conversationTemperature = [
@@ -37,7 +37,7 @@ const OpenAIWrapper = {
             }
         ]
     
-        const temperatureResponse = await openai.chat.completions.create({
+        const temperatureResponse = await open_ai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: conversationTemperature,
             temperature: 1,
@@ -70,7 +70,7 @@ const OpenAIWrapper = {
     //     clearInterval(sendTypingInterval);
     //     return response.choices[0].message.content;
     // },
-    async generateInCharacterResponse(content, message, openai) {
+    async generateInCharacterResponse(content, message) {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
             let conversation = [
@@ -91,7 +91,7 @@ const OpenAIWrapper = {
                 }
             ]
         
-            const response = await openai.chat.completions.create({
+            const response = await open_ai.chat.completions.create({
                 model: 'gpt-3.5-turbo',
                 messages: conversation,
                 temperature: 1,

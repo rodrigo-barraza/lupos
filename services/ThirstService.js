@@ -47,13 +47,13 @@ const ThirstService = {
         console.log(`Thirst level decreased to: ${currentThirstLevel}`);
         return currentThirstLevel;
     },
-    async drink(message, openai) {
+    async drink(message) {
         currentThirstLevel = ThirstService.decreaseThirstLevel();
         const content = `
         You will drink whatever is given to you. You will always accept it, and you will take a sip, gulp, chug, swallow down, the delicious drink that has been given to you. You have just been fed a drink. You are now ${currentThirstLevel}/100 thirsty. This means that you are at a ${currentThirstLevel} out of 100 level of hunger. You start acting like you are ${currentThirstLevel}/100 thirsty. You just drank the drink and it tasted ${currentThirstLevel} out of one hundred in terms of taste.
         ${message.content}
         `;
-        const response = await OpenAIWrapper.generateInCharacterResponse(content, message, openai);
+        const response = await OpenAIWrapper.generateInCharacterResponse(content, message);
         await message.reply({ content: response });
         return;
     }

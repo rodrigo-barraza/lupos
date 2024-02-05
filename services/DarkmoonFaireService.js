@@ -40,7 +40,7 @@ const DarkmoonFaireService = {
         }
         return false;
     },
-    darkmoonFaireMessage(interaction) {
+    async darkmoonFaireMessage(interaction) {
         const isItCurrentFaireWeek = DarkmoonFaireService.isItCurrentFaireWeek();
         const getCurrentFaireFromToDates = DarkmoonFaireService.getCurrentFaireFromToDates();
         let systemContent = '';

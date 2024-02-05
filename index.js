@@ -113,7 +113,7 @@ client.on('messageCreate', async (message) => {
             ${MessageService.generateAssistantMessage()}
             ${MessageService.generateBackstoryMessage(message.guild?.id)}
             ${MessageService.generatePersonalityMessage()}
-            ${await MoodService.generateMoodMessage(message, client, openai)}
+            ${await MoodService.generateMoodMessage(message, client)}
             ${MessageService.generateKnowledgeMessage(message)}
             ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}
             ${MessageService.generateServerSpecificMessage(message.guild?.id)}

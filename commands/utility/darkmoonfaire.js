@@ -8,7 +8,7 @@ module.exports = {
 		.setDescription('Get the latest details on the Darkmoon Faire.'),
     async execute(interaction) {
         await interaction.deferReply();
-        const reply = await DarkMoonFaireService.dungeonTimerMessage(interaction);
+        const reply = await DarkMoonFaireService.darkmoonFaireMessage(interaction);
         MoodService.decreaseMoodLevel();
         await interaction.editReply(reply);
     },
