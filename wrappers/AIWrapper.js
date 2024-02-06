@@ -4,15 +4,12 @@ const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
 const { primaryBrainModel, primaryBrainTemperature, primaryBrainMaxTokens, localModelUrl } = require('../config.json');
 
-let hungerChannelId = '1198326193984913470';
-let guildId = '1004528256072044705'; // the clam
-
-const open_ai = new OpenAI({apiKey: process.env.OPENAI_KEY})
+const openAI = new OpenAI({apiKey: process.env.OPENAI_KEY})
 
 const AIWrapper = {
     async generateResponse(conversation, maxTokens) {
         if (primaryBrainModel === 'GPT') {
-            return response = await open_ai.chat.completions.create({
+            return response = await openAI.chat.completions.create({
                 temperature: primaryBrainTemperature,
                 model: 'gpt-3.5-turbo-1106',
                 // model: 'gpt-4-1106-preview',

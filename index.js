@@ -9,6 +9,7 @@ const MoodService = require('./services/MoodService.js');
 const MessageService = require('./services/MessageService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIWrapper = require('./wrappers/AIWrapper.js');
+const AIService = require('./services/AIService.js');
 
 const client = DiscordWrapper.instantiate();
 
@@ -54,9 +55,7 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-const openai = new OpenAI({apiKey: process.env.OPENAI_KEY})
 const IGNORE_PREFIX = "!";
-const localSwitch = 'gpt'
 
 async function fetchMessages(client) {
     // find messages in specific channel
@@ -86,12 +85,6 @@ client.on("ready", () => {
     // setInterval(() => {
     //     fetchMessages(client)
     // }, 2000);
-    // UtilityLibrary.getAndSetMood(client)
-    // HungerService.instantiate(client, openai);
-    // ThirstService.instantiate(client, openai);
-    // HygieneService.instantiate(client, openai);
-    // EnergyService.instantiate(client, openai);
-    // BathroomService.instantiate(client, openai);
   }
 );
 
@@ -107,63 +100,9 @@ client.on('messageCreate', async (message) => {
     // if it's a DM and a message from the bot, ignore it
     if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) return;
 
-    // if (message.content.includes('🍺') || message.content.includes('🍻') || message.content.includes('🍷') || message.content.includes('🍸') || message.content.includes('🍹') || message.content.includes('🍾') || message.content.includes('🍶') || message.content.includes('🥃')) {
-    //     await AlcoholService.drinkAlcohol(message, openai);
-    //     return;
-    // }
-
-    // if includes food emojis
-    // const foodEmojis = ['🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍇', '🍈', '🍉', '🍊', '🍋', '🍌', '🍍', '🥭', '🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🥝', '🍅', '🥥', '🥑', '🍆', '🥔', '🥕', '🌽', '🌶', '🥒', '🥬', '🥦', '🧄', '🧅', '🍄', '🥜', '🌰', '🍞', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥙', '🧆', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🥫', '🍱', '🍘', '🍙', '🍚', '🍛', '🍜', '🍝', '🍠', '🍢', '🍣', '🍤', '🍥', '🥮', '🍡', '🥟', '🥠', '🥡', '🦪', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🧁', '🥧', '🍫', '🍬', '🍭', '🍮', '🍯', '🍼', '🥛', '☕', '🍵', '🍶', '🍾', '🍷', '🍸', '🍹', '🍺', '🍻', '🥂', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊', '🥢', '🍽', '🍴', '🥄'];
-
-    // const drinkEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃', '🥤', '🧋', '🧃', '🧉', '🧊'];
-
-    // const alcoholEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃'];
-
-    // if (foodEmojis.some(emoji => message.content.includes(emoji))) {
-    //     await ActionsService.eat(message, openai);
-    //     return;
-    // }
-
     await message.channel.sendTyping();
     const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-    
-    let conversation = [];
-    let recentMessages = (await message.channel.messages.fetch({ limit: 12 })).reverse();
-
-
-    conversation.push({
-        role: 'system',
-        content: `${AlcoholService.generateAlcoholSystemPrompt()}
-            ${MessageService.generateCurrentConversationUser(message)}
-            ${MessageService.generateAssistantMessage()}
-            ${MessageService.generateBackstoryMessage(message.guild?.id)}
-            ${MessageService.generatePersonalityMessage()}
-            ${await MoodService.generateMoodMessage(message, client)}
-            ${MessageService.generateKnowledgeMessage(message)}
-            ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}
-            ${MessageService.generateServerSpecificMessage(message.guild?.id)}
-        `
-    });
-
-    recentMessages.forEach((msg) => {
-        if (msg.content.startsWith(IGNORE_PREFIX)) return;
-
-        if (msg.author.id === client.user.id) {
-            conversation.push({
-                role: 'assistant',
-                name: UtilityLibrary.getUsernameNoSpaces(msg),
-                content: msg.content,
-            });
-        } else {
-            conversation.push({
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(msg),
-                content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username) } said ${msg.content}.`,
-            })
-        }
-    })
-
-    console.log(conversation)
+    let conversation = await AIService.generateConversation(message, client);
     let response = await AIWrapper.generateResponse(conversation);
     clearInterval(sendTypingInterval);
 
