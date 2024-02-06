@@ -33,7 +33,7 @@ module.exports = {
             You will answer, in character, when the next full moon is. The next full moon is the ${getNextFullMoon().name} on ${moment(getNextFullMoon().date).format('MMMM Do, YYYY')}. You will either answer by saying the date, or by saying how many more days are left until the next full moon."
         `;
         const userContent = 'When is the next full moon?'
-        const characterResponse = await AIWrapper.generateInCharacterResponse22(systemContent, userContent, interaction);
+        const characterResponse = await AIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
         await interaction.editReply(characterResponse);
     },
 };
