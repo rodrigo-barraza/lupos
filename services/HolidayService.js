@@ -1,5 +1,5 @@
 const { ActivityType } = require('discord.js');
-const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
+const AIWrapper = require('../wrappers/AIWrapper.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 
 const worldOfWarcraftHolidays = [

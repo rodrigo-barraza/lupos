@@ -2,21 +2,36 @@ require('dotenv/config');
 const { OpenAI } = require('openai');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
+const { primaryBrainModel, primaryBrainTemperature, primaryBrainMaxTokens, localModelUrl } = require('../config.json');
 
 let hungerChannelId = '1198326193984913470';
 let guildId = '1004528256072044705'; // the clam
 
 const open_ai = new OpenAI({apiKey: process.env.OPENAI_KEY})
 
-const OpenAIWrapper = {
+const AIWrapper = {
     async generateResponse(conversation) {
-        return response = await open_ai.chat.completions.create({
-            temperature: 1,
-            model: 'gpt-3.5-turbo-1106',
-            // model: 'gpt-3.5-turbo',
-            // model: 'gpt-4-1106-preview',
-            messages: conversation,
-        }).catch((error) => console.error('OpenAI Error:\n', error));
+        if (primaryBrainModel === 'GPT') {
+            return response = await open_ai.chat.completions.create({
+                temperature: primaryBrainTemperature,
+                model: 'gpt-3.5-turbo-1106',
+                // model: 'gpt-4-1106-preview',
+                messages: conversation,
+            }).catch((error) => console.error('OpenAI Error:\n', error));
+        } else if (primaryBrainModel === 'LOCAL') {
+            return response = await fetch(localModelUrl, {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                messages: conversation,
+                temperature: primaryBrainTemperature,
+                max_tokens: primaryBrainMaxTokens,
+                stream: false
+                })
+            }).catch(error => console.error('Error:', error));
+        }
     },
     async generateMoodTemperature(message) {
         await message.channel.sendTyping();
@@ -36,13 +51,8 @@ const OpenAIWrapper = {
                 content: message.content,
             }
         ]
-    
-        const temperatureResponse = await open_ai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: conversationTemperature,
-            temperature: 1,
-        }).catch((error) => console.error('OpenAI Error:\n', error));
 
+        let temperatureResponse = await AIWrapper.generateResponse(conversationTemperature);
         clearInterval(sendTypingInterval);
         return temperatureResponse.choices[0].message.content;
     },
@@ -120,7 +130,7 @@ const OpenAIWrapper = {
             }
         ]
 
-        const response = await OpenAIWrapper.generateResponse(conversation);
+        const response = await AIWrapper.generateResponse(conversation);
         return response.choices[0].message.content;
     },
     // async generateInCharacterResponseSpecial(client, systemContent, userContent, openai) {
@@ -154,4 +164,4 @@ const OpenAIWrapper = {
     // }
 };
 
-module.exports = OpenAIWrapper;
+module.exports = AIWrapper;

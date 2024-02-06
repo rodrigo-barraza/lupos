@@ -8,6 +8,7 @@ const AlcoholService = require('./services/AlcoholService.js');
 const MoodService = require('./services/MoodService.js');
 const MessageService = require('./services/MessageService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
+const AIWrapper = require('./wrappers/AIWrapper.js');
 
 const client = DiscordWrapper.instantiate();
 
@@ -57,10 +58,34 @@ const openai = new OpenAI({apiKey: process.env.OPENAI_KEY})
 const IGNORE_PREFIX = "!";
 const localSwitch = 'gpt'
 
+async function fetchMessages(client) {
+    // find messages in specific channel
+    const channel = client.channels.cache.get('1198326193984913470');
+    if (!channel) return;
+    const messages = await channel.messages.fetch({ limit: 100 });
+    console.log(messages)
+    // find the most common author.id in messages array
+    const authorCounts = messages.reduce((counts, message) => {
+        const authorId = message.author.id;
+        if (!counts[authorId]) {
+            counts[authorId] = 0;
+        }
+        counts[authorId]++;
+        return counts;
+    }, {});
+    
+    const mostCommonAuthorId = Object.keys(authorCounts).reduce((a, b) => authorCounts[a] > authorCounts[b] ? a : b);
+    
+    console.log(mostCommonAuthorId);
+}
+
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
     AlcoholService.instantiate();
     MoodService.instantiate();
+    // setInterval(() => {
+    //     fetchMessages(client)
+    // }, 2000);
     // UtilityLibrary.getAndSetMood(client)
     // HungerService.instantiate(client, openai);
     // ThirstService.instantiate(client, openai);
@@ -118,17 +143,6 @@ client.on('messageCreate', async (message) => {
             ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}
             ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         `
-        // content: `
-        //     ${MessageService.generateAlcoholMessage(AlcoholService.getAlcoholLevel())}
-        //     ${MessageService.generateCurrentConversationUser(message)}
-        //     ${MessageService.generateAssistantMessage()}
-        //     ${MessageService.generateBackstoryMessage(message.guild?.id)}
-        //     ${MessageService.generatePersonalityMessage()}
-        //     ${MessageService.generateKnowledgeMessage(message)}
-        //     ${generatedMoodMessage}
-        //     ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}
-        //     ${MessageService.generateServerSpecificMessage(message.guild?.id)}
-        // `
     });
 
     recentMessages.forEach((msg) => {
@@ -150,32 +164,7 @@ client.on('messageCreate', async (message) => {
     })
 
     console.log(conversation)
-    let response 
-    if (localSwitch === 'local'){
-        response = await fetch('http://localhost:581/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-            messages: conversation,
-            temperature: 1,
-            max_tokens: 1200,
-            stream: false
-            })
-      }).catch(error => console.error('Error:', error));
-        response = await response.json();
-    } else if(localSwitch === 'gpt'){
-        response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo-1106',
-            // model: 'gpt-3.5-turbo',
-            temperature: 1,
-            // model: 'gpt-4-1106-preview',
-            messages: conversation,
-            temperature: 1.1,
-        }).catch((error) => console.error('OpenAI Error:\n', error));
-    }
-    
+    let response = await AIWrapper.generateResponse(conversation);
     clearInterval(sendTypingInterval);
 
     if (!response) {

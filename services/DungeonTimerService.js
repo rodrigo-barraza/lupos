@@ -1,5 +1,5 @@
 const moment = require('moment');
-const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
+const AIWrapper = require('../wrappers/AIWrapper.js');
 
 const resetFrequencyInDays = 3;
 const initialBFDResetDate = 1707055200;
@@ -57,7 +57,7 @@ const DungeonTimerService = {
             `;
         }
         const userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
-        return await OpenAIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
+        return await AIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
     }
 };
 

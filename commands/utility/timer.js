@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const OpenAIWrapper = require('../../wrappers/OpenAIWrapper.js');
+const AIWrapper = require('../../wrappers/AIWrapper.js');
 const DungeonTimerService = require('../../services/DungeonTimerService.js');
 const MoodService = require('../../services/MoodService.js');
 const moment = require('moment');
