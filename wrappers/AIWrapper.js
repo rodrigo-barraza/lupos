@@ -19,7 +19,7 @@ const AIWrapper = {
                 messages: conversation,
             }).catch((error) => console.error('OpenAI Error:\n', error));
         } else if (primaryBrainModel === 'LOCAL') {
-            return response = await fetch(localModelUrl, {
+            const response = await fetch(localModelUrl, {
                 method: 'POST',
                 headers: {
                 'Content-Type': 'application/json'
@@ -31,6 +31,7 @@ const AIWrapper = {
                 stream: false
                 })
             }).catch(error => console.error('Error:', error));
+            return await response.json();
         }
     },
     async generateMoodTemperature(message) {
