@@ -11,7 +11,7 @@ const AIWrapper = {
         if (primaryBrainModel === 'GPT') {
             return response = await openAI.chat.completions.create({
                 temperature: primaryBrainTemperature,
-                model: 'gpt-3.5-turbo-1106',
+                model: 'gpt-3.5-turbo-0125',
                 // model: 'gpt-4-1106-preview',
                 messages: conversation,
             }).catch((error) => console.error('OpenAI Error:\n', error));
