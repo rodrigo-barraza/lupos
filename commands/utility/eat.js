@@ -16,3 +16,17 @@
     //     await ActionsService.eat(message, openai);
     //     return;
     // }
+
+const { SlashCommandBuilder } = require('discord.js');
+const ActionsService = require('../../services/ActionsService.js');
+
+module.exports = {
+	data: new SlashCommandBuilder()
+		.setName('eat')
+		.setDescription('Give Lupos something to eat.'),
+    async execute(interaction) {
+        await interaction.deferReply();
+        const characterResponse = await ActionsService.eat(interaction);
+        await interaction.editReply(characterResponse);
+    },
+};

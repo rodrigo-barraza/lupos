@@ -54,32 +54,32 @@ const AIWrapper = {
         clearInterval(sendTypingInterval);
         return response.choices[0].message.content;
     },
-    async generateInCharacterResponse(content, message) {
-        await message.channel.sendTyping();
-        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-            let conversation = [
-                {
-                    role: 'system',
-                    content: `
-                        ${MessageService.generateCurrentConversationUser(message)}
-                        ${MessageService.generateBackstoryMessage(message?.guild?.id)}
-                        ${MessageService.generatePersonalityMessage()}
-                        ${MessageService.generateServerSpecificMessage(message?.guild?.id)}
-                        ${content}
-                    `
-                },
-                {
-                    role: 'user',
-                    name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: message.content,
-                }
-            ]
+    // async generateInCharacterResponse(content, message) {
+    //     await message.channel.sendTyping();
+    //     const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    //         let conversation = [
+    //             {
+    //                 role: 'system',
+    //                 content: `
+    //                     ${MessageService.generateCurrentConversationUser(message)}
+    //                     ${MessageService.generateBackstoryMessage(message?.guild?.id)}
+    //                     ${MessageService.generatePersonalityMessage()}
+    //                     ${MessageService.generateServerSpecificMessage(message?.guild?.id)}
+    //                     ${content}
+    //                 `
+    //             },
+    //             {
+    //                 role: 'user',
+    //                 name: UtilityLibrary.getUsernameNoSpaces(message),
+    //                 content: message.content,
+    //             }
+    //         ]
         
-            let response = await AIWrapper.generateResponse(conversation, 3);
-            clearInterval(sendTypingInterval);
-            return response.choices[0].message.content;
-    },
-    async generateInCharacterResponse2(systemContent, userContent, interaction) {
+    //         let response = await AIWrapper.generateResponse(conversation, 3);
+    //         clearInterval(sendTypingInterval);
+    //         return response.choices[0].message.content;
+    // },
+    async generateInCharacterResponse(systemContent, userContent, interaction) {
         let conversation = [
             {
                 role: 'system',

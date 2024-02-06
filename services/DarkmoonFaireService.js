@@ -69,7 +69,7 @@ const DarkmoonFaireService = {
             `;
             userContent = 'Can you explain when is the next Darkmoon Faire week, when does it go until, and how long does it last?';
         }
-        return await AIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
+        return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
     },
 }
 

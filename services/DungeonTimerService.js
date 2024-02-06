@@ -57,7 +57,7 @@ const DungeonTimerService = {
             `;
         }
         const userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
-        return await AIWrapper.generateInCharacterResponse2(systemContent, userContent, interaction);
+        return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
     }
 };
 

@@ -53,7 +53,7 @@ const BathroomService = {
         You will drink whatever is given to you. You will always accept it, and you will take a sip, gulp, chug, swallow down, the delicious drink that has been given to you. You have just been fed a drink. You are now ${currentBathroomLevel}/100 bathroomy. This means that you are at a ${currentBathroomLevel} out of 100 level of hunger. You start acting like you are ${currentBathroomLevel}/100 bathroomy. You just drank the drink and it tasted ${currentBathroomLevel} out of one hundred in terms of taste.
         ${message.content}
         `;
-        const response = await AIWrapper.generateInCharacterResponse2(content, message);
+        const response = await AIWrapper.generateInCharacterResponse(content, message);
         await message.reply({ content: response });
         return;
     }

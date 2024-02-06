@@ -6,6 +6,7 @@ const EnergyService = require('../../services/EnergyService.js');
 const HygieneService = require('../../services/HygieneService.js');
 const BathroomService = require('../../services/BathroomService.js');
 const MoodService = require('../../services/MoodService.js');
+const SicknessService = require('../../services/SicknessService.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -24,6 +25,7 @@ module.exports = {
         const boredomLevel = 100;
         const bathroomLevel = BathroomService.getBathroomLevel();
         const hygieneLevel = HygieneService.getHygieneLevel();
+        const sicknessLevel = SicknessService.getSicknessLevel();
 		// await interaction.reply(`Hunger level is ${hungerLevel}.\n
         // Alcohol level is ${alcoholLevel}.\n
         // Mood level is ${moodName}.\n
@@ -45,6 +47,7 @@ module.exports = {
             // { name: 'Hygiene', value: `${hygieneLevel}%`, inline: true },
 
             { name: 'Drunk', value: `${alcoholLevel}%`, inline: true },
+            { name: 'Sickness', value: `${sicknessLevel}%`, inline: true },
             // { name: 'Bathroom', value: `${bathroomLevel}%`, inline: true },
 
             
