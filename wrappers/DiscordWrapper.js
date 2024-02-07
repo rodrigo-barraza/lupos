@@ -6,7 +6,14 @@ let client;
 const DiscordWrapper = {
     instantiate() {
         client = new Client({
-            intents: ['Guilds', 'GuildMembers', 'GuildPresences', 'GuildMessages', 'MessageContent', 'DirectMessages'],
+            intents: [
+              GatewayIntentBits.Guilds, 
+              GatewayIntentBits.GuildMembers,
+              GatewayIntentBits.GuildPresences, 
+              GatewayIntentBits.GuildMessages, 
+              GatewayIntentBits.MessageContent, 
+              GatewayIntentBits.DirectMessages
+            ],
             partials: [
               Partials.Channel,
               Partials.Message

@@ -13,20 +13,20 @@
     // const alcoholEmojis = ['🍺', '🍻', '🍷', '🍸', '🍹', '🍾', '🍶', '🥃'];
 
     // if (foodEmojis.some(emoji => message.content.includes(emoji))) {
-    //     await ActionsService.eat(message, openai);
+    //     await ActionService.eat(message, openai);
     //     return;
     // }
 
 const { SlashCommandBuilder } = require('discord.js');
-const ActionsService = require('../../services/ActionsService.js');
+const ActionService = require('../../services/ActionService.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('eat')
-		.setDescription('Give Lupos something to eat.'),
+		.setDescription('Give Lupos something random to eat.'),
     async execute(interaction) {
         await interaction.deferReply();
-        const characterResponse = await ActionsService.eat(interaction);
+        const characterResponse = await ActionService.eat(interaction);
         await interaction.editReply(characterResponse);
     },
 };

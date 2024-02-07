@@ -1,4 +1,5 @@
 require('dotenv/config');
+const { botTestingChannelId, loneWolfFitewolfChannelId, loneWolfGeneralDiscussionChannelId, loneWolfPoliticsChannelId, loneWolfGuildId, blabberMouthId, loneWolfTheBlackListChannelId } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Collection, Events, ChannelType } = require('discord.js');
@@ -10,6 +11,7 @@ const MessageService = require('./services/MessageService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIWrapper = require('./wrappers/AIWrapper.js');
 const AIService = require('./services/AIService.js');
+const YapperService = require('./services/YapperService.js');
 
 const client = DiscordWrapper.instantiate();
 
@@ -57,14 +59,51 @@ client.on(Events.InteractionCreate, async interaction => {
 
 const IGNORE_PREFIX = "!";
 
-async function fetchMessages(client) {
+async function checkBotPermissions(client, botTestingChannelId, roleName = 'Yapper') {
+    const channel = await client.channels.fetch(botTestingChannelId);
+    if (!channel) return console.log('Channel not found');
+    const guild = guild;
+    
+    const botMember = guild.members.cache.get(client.user.id);
+    if (!botMember) return console.log('Bot member not found in guild');
+    
+    const hasPermission = botMember.permissions.has("ManageRoles");
+    console.log(`Bot has ManageRoles permission: ${hasPermission}`);
+    
+    const role = guild.roles.cache.find(role => role.name === roleName);
+    if (!role) return console.log(`Role ${roleName} not found`);
+    
+    const botHighestRolePosition = botMember.roles.highest.position;
+    const rolePosition = role.position;
+    
+    console.log(`Bot's highest role position: ${botHighestRolePosition}, Target role position: ${rolePosition}`);
+    if (botHighestRolePosition <= rolePosition) {
+        console.log('Bot does not have a higher role than the target role. Cannot manage this role.');
+    } else {
+        console.log('Bot has the capability to manage the target role.');
+    }
+}
+
+let previousBlabberMouthId;
+
+async function blabberMouth(client) {
     // find messages in specific channel
-    const channel = client.channels.cache.get('1198326193984913470');
-    if (!channel) return;
-    const messages = await channel.messages.fetch({ limit: 100 });
-    console.log(messages)
+    const channel1 = client.channels.cache.get(loneWolfFitewolfChannelId);
+    const channel2 = client.channels.cache.get(loneWolfGeneralDiscussionChannelId);
+    const channel3 = client.channels.cache.get(loneWolfPoliticsChannelId);
+    const guild = client.guilds.cache.get(loneWolfGuildId);
+    const roleId = blabberMouthId;
+
+    const allMessages = await Promise.all([
+        channel1.messages.fetch({ limit: 100 }),
+        channel2.messages.fetch({ limit: 100 }),
+        channel3.messages.fetch({ limit: 100 }),
+    ]);
+    
+    const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);
+
     // find the most common author.id in messages array
-    const authorCounts = messages.reduce((counts, message) => {
+    const authorCounts = combinedMessages.reduce((counts, message) => {
         const authorId = message.author.id;
         if (!counts[authorId]) {
             counts[authorId] = 0;
@@ -72,19 +111,74 @@ async function fetchMessages(client) {
         counts[authorId]++;
         return counts;
     }, {});
-    
+
     const mostCommonAuthorId = Object.keys(authorCounts).reduce((a, b) => authorCounts[a] > authorCounts[b] ? a : b);
-    
-    console.log(mostCommonAuthorId);
+
+    const role = guild.roles.cache.find(role => role.id === roleId);
+    const currentBlabbermouth = await guild.members.fetch(mostCommonAuthorId);
+    const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === roleId));
+
+    if (previousBlabberMouthId !== currentBlabbermouth.id) {
+        await membersWithRole.forEach(member => member.roles.remove(role));
+        currentBlabbermouth.roles.add(role);
+        previousBlabberMouthId = currentBlabbermouth.id;
+        console.log(`${currentBlabbermouth.displayName} has been given the role ${role.name}`);
+    }
+
+    // find top 5 common authors
+    const sortedAuthors = Object.entries(authorCounts).sort((a, b) => b[1] - a[1]);
+    const yappers = sortedAuthors.slice(0, 5);
+
+    const oldYappers = YapperService.getYappers();
+
+    const areArraysEqual = (array1, array2) =>
+        array1.length === array2.length &&
+        array1.every(item1 =>
+            array2.some(item2 =>
+            Object.keys(item1).length === Object.keys(item2).length &&
+            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
+            )
+        ) &&
+        array2.every(item1 =>
+            array1.some(item2 =>
+            Object.keys(item1).length === Object.keys(item2).length &&
+            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
+            )
+        );
+
+    function mapYappers(yappers) {
+        const yappersMap = yappers.reduce((acc, [id, posts]) => {
+            const member = guild.members.cache.get(id);
+            const displayName = member ? member.displayName : 'Unknown';
+            if (acc[id]) {
+                acc[id].posts += posts;
+            } else {
+                acc[id] = { id, posts, displayName };
+            }
+            return acc;
+        }, {});
+        return Object.values(yappersMap);
+    }
+
+    const mappedYappers = mapYappers(yappers);
+
+    if (!areArraysEqual(oldYappers, mappedYappers)) {
+        YapperService.setYappers(mappedYappers);
+        console.log('Current yappers:', mappedYappers);
+    }
+
 }
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
     AlcoholService.instantiate();
     MoodService.instantiate();
-    // setInterval(() => {
-    //     fetchMessages(client)
-    // }, 2000);
+    // checkBotPermissions(client, botTestingChannelId);
+
+    blabberMouth(client)
+    setInterval(() => {
+        blabberMouth(client)
+    }, 10 * 1000);
   }
 );
 

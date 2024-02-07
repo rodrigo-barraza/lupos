@@ -2,7 +2,7 @@ const moment = require('moment');
 const AIWrapper = require('../wrappers/AIWrapper.js');
 
 const resetFrequencyInDays = 3;
-const initialBFDResetDate = 1707055200;
+const initialBFDResetDate = 1707069600;
 
 const DungeonTimerService = {
     checkNextBFDReset() {
@@ -34,10 +34,17 @@ const DungeonTimerService = {
         }
         return daysUntilReset;
     },
+    hoursUntilReset() {
+        const nextBFDResetDate = DungeonTimerService.getNextBFDResetDate();
+        const hoursUntilReset = moment(nextBFDResetDate).diff(moment(), 'hours');
+        return hoursUntilReset;
+    },
     async dungeonTimerMessage(interaction) {
         const daysUntilReset = DungeonTimerService.daysUntilReset();
+        const hoursUntilReset = DungeonTimerService.hoursUntilReset();
         const todaysDate = moment().format('MMMM Do, YYYY');
         let systemContent = '';
+        let userContent = '';
         if (!daysUntilReset) {
             systemContent = `
                 You will enclose the date and word today in double **asterisks**.
@@ -46,6 +53,17 @@ const DungeonTimerService = {
                 
                 Do not mention the time at all, only the date."
             `
+            userContent = 'Is it rad reset day today? I cannot wait to throw myself in a raid again. I am so excited!';
+        } else if (hoursUntilReset < 24 ) {
+            const nextResetDate = DungeonTimerService.getNextBFDResetDate().format('MMMM Do, YYYY');
+            systemContent = `
+                You will enclose the day, date and tomorrow or after tomorrow in double **asterisks**.
+                Mention whether it's tomorrow or the day after tomorrow.
+                You will answer, in character, when the next raid reset is. The next raid reset date is in ${hoursUntilReset} hours, on ${nextResetDate} at 11:00AM server-time (MST). You will either answer by saying the date, and by saying how many more hours are left until the next dungeon reset. Make a remark about how they they seem to be so impatient and that they should probably go out a little more, instead of playing silly nintendo indoors, all locked up, like a pup in a cage, or a dog in a crate.
+                
+                Always mention the amount of hours left until the next reset.
+            `;
+            userContent = 'In how many hours is the next raid reset? I am itching to get back in there and do some raids again. I am so excited!';
         } else {
             const nextResetDate = DungeonTimerService.getNextBFDResetDate().format('MMMM Do, YYYY');
             systemContent = `
@@ -55,8 +73,9 @@ const DungeonTimerService = {
                 
                 Do not mention the time at all, only the date.
             `;
+            userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
         }
-        const userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
+        userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
         return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
     }
 };

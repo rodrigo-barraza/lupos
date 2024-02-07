@@ -7,13 +7,14 @@ const { primaryBrainModel, primaryBrainTemperature, primaryBrainMaxTokens, local
 const openAI = new OpenAI({apiKey: process.env.OPENAI_KEY})
 
 const AIWrapper = {
-    async generateResponse(conversation, maxTokens) {
+    async generateResponse(conversation, maxTokens, model = 'gpt-4-0125-preview') {
         if (primaryBrainModel === 'GPT') {
             return response = await openAI.chat.completions.create({
                 temperature: primaryBrainTemperature,
                 // model: 'gpt-3.5-turbo-0125',
-                model: 'gpt-4-0125-preview',
+                model: model,
                 messages: conversation,
+                max_tokens: primaryBrainMaxTokens,
             }).catch((error) => console.error('OpenAI Error:\n', error));
         } else if (primaryBrainModel === 'LOCAL') {
             const response = await fetch(localModelUrl, {
@@ -50,7 +51,7 @@ const AIWrapper = {
             }
         ]
 
-        let response = await AIWrapper.generateResponse(conversation, 3);
+        let response = await AIWrapper.generateResponse(conversation, 3, 'gpt-3.5-turbo-0125');
         clearInterval(sendTypingInterval);
         return response.choices[0].message.content;
     },
@@ -99,7 +100,7 @@ const AIWrapper = {
             }
         ]
 
-        const response = await AIWrapper.generateResponse(conversation);
+        const response = await AIWrapper.generateResponse(conversation, 400, 'gpt-3.5-turbo-0125');
         return response.choices[0].message.content;
     },
 };
