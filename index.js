@@ -102,17 +102,34 @@ async function blabberMouth(client) {
     
     const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);
 
+    const last100Recent = [...combinedMessages]
+    .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
+    .slice(0, 100);
+
+
+
     // find the most common author.id in messages array
     const authorCounts = combinedMessages.reduce((counts, message) => {
-        const authorId = message.author.id;
-        if (!counts[authorId]) {
-            counts[authorId] = 0;
+        if (Object.keys(counts).length < 100) {
+            const authorId = message.author.id;
+            if (!counts[authorId]) {
+                counts[authorId] = { count: 0, earliestTimestamp: message.createdTimestamp };
+            }
+            counts[authorId].count++;
+            counts[authorId].earliestTimestamp = Math.min(counts[authorId].earliestTimestamp, message.createdTimestamp);
         }
-        counts[authorId]++;
         return counts;
     }, {});
+    
+    const first100Authors = Object.entries(authorCounts)
+        .sort((a, b) => a[1].earliestTimestamp - b[1].earliestTimestamp)
+        .slice(0, 100)
+        .reduce((acc, [authorId, { count }]) => {
+            acc[authorId] = count;
+            return acc;
+        }, {});
 
-    const mostCommonAuthorId = Object.keys(authorCounts).reduce((a, b) => authorCounts[a] > authorCounts[b] ? a : b);
+    const mostCommonAuthorId = Object.keys(first100Authors).reduce((a, b) => first100Authors[a] > first100Authors[b] ? a : b);
 
     const role = guild.roles.cache.find(role => role.id === roleId);
     const currentBlabbermouth = await guild.members.fetch(mostCommonAuthorId);
@@ -126,7 +143,7 @@ async function blabberMouth(client) {
     }
 
     // find top 5 common authors
-    const sortedAuthors = Object.entries(authorCounts).sort((a, b) => b[1] - a[1]);
+    const sortedAuthors = Object.entries(first100Authors).sort((a, b) => b[1] - a[1]);
     const yappers = sortedAuthors.slice(0, 5);
 
     const oldYappers = YapperService.getYappers();

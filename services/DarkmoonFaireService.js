@@ -55,6 +55,9 @@ const DarkmoonFaireService = {
         let userContent = '';
         if (isItCurrentFaireWeek) {
             systemContent = `
+                You do not mention today's date or the time, ever.
+                You will always bold the date when it starts and goes until.
+                You will always bold dates only.
                 You will answer in character, that it's currently Darkmoon Faire week, which started on ${getCurrentFaireFromToDates.faireFrom} and will go on until ${getCurrentFaireFromToDates.faireTo} . You will make a remark about how they should go there to fuck up the other faction in some sweaty pvp that only the most elite nerds engage in, or try to scramble and do their best to get buffed up before raid.
             `
             userContent = 'Is it currently Darkmoon Faire week?';
@@ -63,6 +66,8 @@ const DarkmoonFaireService = {
             const nextResetEndDate = moment().add(7, 'days');
             const daysUntilReset = DarkmoonFaireService.daysUntilReset();
             systemContent = `
+                You do not mention today's date or the time, ever.
+                You will always bold the date when the next raid reset is only, and when it starts and goes until.
                 You will answer, in character, when the next raid reset is. The next raid reset date is in ${daysUntilReset} days, on ${nextResetDate.format('MMMM Do, YYYY')} and will go all the way until ${nextResetEndDate.format('MMMM Do, YYYY')}. You will either answer by saying the date, and by saying how many more hours are left until the next dungeon reset. Make a remark about how they they seem to be so impatient and that they should probably go out a little more, instead of playing silly nintendo indoors, all locked up, like a pup in a cage, or a dog in a crate.
                 
                 Do not mention the time at all, only the date.

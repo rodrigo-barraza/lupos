@@ -42,7 +42,7 @@ const MessageService = {
         const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
         const userId = message?.author?.id || message?.user?.id;
         if (username && userId) {
-            const generatedMessage = `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)}, but there are other people in the chat. You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name or tagging them on discord as: <@${userId}>. Do not do mention their name and tag them at the same time, only one.`;
+            const generatedMessage = `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)}, but there are other people in the chat. You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name. Do not do mention their name and tag them at the same time, only one.`;
             console.log('Replying to: ' + username);
             return generatedMessage;
         }

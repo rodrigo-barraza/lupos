@@ -6,7 +6,7 @@ const moment = require('moment');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('timer')
+		.setName('raidreset')
 		.setDescription('Find out when the next raid reset timer date is.'),
     async execute(interaction) {
         await interaction.deferReply();

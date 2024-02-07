@@ -1,12 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const HungerService = require('../../services/HungerService.js');
-const AlcoholService = require('../../services/AlcoholService.js');
-const ThirstService = require('../../services/ThirstService.js');
-const EnergyService = require('../../services/EnergyService.js');
-const HygieneService = require('../../services/HygieneService.js');
-const BathroomService = require('../../services/BathroomService.js');
-const MoodService = require('../../services/MoodService.js');
-const SicknessService = require('../../services/SicknessService.js');
+const HungerService = require('../services/HungerService.js');
+const AlcoholService = require('../services/AlcoholService.js');
+const ThirstService = require('../services/ThirstService.js');
+const EnergyService = require('../services/EnergyService.js');
+const HygieneService = require('../services/HygieneService.js');
+const BathroomService = require('../services/BathroomService.js');
+const MoodService = require('../services/MoodService.js');
+const SicknessService = require('../services/SicknessService.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()

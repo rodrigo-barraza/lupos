@@ -8,7 +8,7 @@ module.exports = {
 		.setDescription('Inquire about the next upcoming Azerothian holiday.'),
     async execute(interaction) {
         await interaction.deferReply();
-        const reply = await HolidayService.dungeonTimerMessage(interaction);
+        const reply = await HolidayService.holidayMessage(interaction);
         MoodService.decreaseMoodLevel();
         await interaction.editReply(reply);
     },

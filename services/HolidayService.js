@@ -1,6 +1,6 @@
-const { ActivityType } = require('discord.js');
 const AIWrapper = require('../wrappers/AIWrapper.js');
-const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
+const MoodService = require('../services/MoodService.js');
+const moment = require('moment')
 
 const worldOfWarcraftHolidays = [
     {
@@ -78,6 +78,84 @@ const worldOfWarcraftHolidays = [
 ]
 
 const HolidayService = {
+    getNextHoliday() {
+        const currentDate = moment();
+        const sortedHolidays = worldOfWarcraftHolidays
+            .map(holiday => ({
+                ...holiday,
+                fromDate: moment(holiday.fromDate, "MMMM Do").year(currentDate.year()),
+                toDate: moment(holiday.toDate, "MMMM Do").year(currentDate.year())
+            }))
+            .sort((a, b) => a.fromDate.diff(b.fromDate));
+    
+        let nextHoliday = sortedHolidays.find(holiday => holiday.fromDate.isAfter(currentDate));
+    
+        if (nextHoliday) {
+            return {
+                ...nextHoliday,
+                fromDate: nextHoliday.fromDate.format("MMMM Do"),
+                toDate: nextHoliday.toDate.format("MMMM Do")
+            };
+        }
+        return nextHoliday;
+    },
+    getCurrentHoliday() {
+        const currentDate = moment();
+        const sortedHolidays = worldOfWarcraftHolidays
+            .map(holiday => ({
+                ...holiday,
+                fromDate: moment(holiday.fromDate, "MMMM Do").year(currentDate.year()),
+                toDate: moment(holiday.toDate, "MMMM Do").year(currentDate.year())
+            }))
+            .sort((a, b) => a.fromDate.diff(b.fromDate));
+    
+        let currentHoliday = sortedHolidays.find(holiday => holiday.fromDate.isBefore(currentDate) && holiday.toDate.isAfter(currentDate));
+    
+        if (currentHoliday) {
+            return {
+                ...currentHoliday,
+                fromDate: currentHoliday.fromDate.format("MMMM Do"),
+                toDate: currentHoliday.toDate.format("MMMM Do")
+            };
+        }
+        return currentHoliday;
+    },
+    getDaysUntilNextHoliday() {
+        const nextHoliday = this.getNextHoliday();
+        const currentDate = moment();
+        const fromDate = moment(nextHoliday.fromDate, "MMMM Do");
+        const daysUntilNextHoliday = fromDate.diff(currentDate, 'days');
+        return daysUntilNextHoliday;
+    },
+    async holidayMessage(interaction) {
+        const getNextHoliday = HolidayService.getNextHoliday();
+        const getDaysUntilNextHoliday = HolidayService.getDaysUntilNextHoliday();
+        const getCurrentHoliday = HolidayService.getCurrentHoliday();
+        MoodService.decreaseMoodLevel();
+
+        let systemContent;
+        let userContent;
+        
+        if (getCurrentHoliday) {
+            systemContent = `
+                You will always bold dates and holiday names.
+                You will mention the full date. Do not mention the time at all, only the date.
+                You will mention which holiday it currently is. 
+                The current holiday is ${getCurrentHoliday.name}.
+                You will mention when it started on ${getCurrentHoliday.fromDate} and that it goes until on ${getCurrentHoliday.toDate}. The holiday description is as follows, so please expand on it and relate it to how it affects you and it's history in Azeroth. ${getCurrentHoliday.description}
+            `;
+            userContent = `What holiday is happening right now?`;
+
+        } else {
+            systemContent = `
+                You will always bold dates and holiday names.
+                You will mention the full date. Do not mention the time at all, only the date.
+                You will mention when the next holiday is, and what it is about. The next holiday is ${getNextHoliday.name}, and it starts on ${getNextHoliday.fromDate} and ends on ${getNextHoliday.toDate}. It is ${getDaysUntilNextHoliday} days away until this holiday. The holiday description is as follows, so please expand on it and relate it to how it affects you and it's history in Azeroth. ${getNextHoliday.description}
+            `;
+            userContent = `What is the next upcoming holiday, what dates does it go on, and how many days away is it?`;
+        }
+        return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
+    }
 }
 
 module.exports = HolidayService

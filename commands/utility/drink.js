@@ -23,10 +23,10 @@ const ActionService = require('../../services/ActionService.js');
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('drink')
-		.setDescription('Give Lupos something random to eat.'),
+		.setDescription('Give Lupos something random to drink.'),
     async execute(interaction) {
         await interaction.deferReply();
-        const characterResponse = await ActionService.eat(interaction);
+        const characterResponse = await ActionService.drink(interaction);
         await interaction.editReply(characterResponse);
     },
 };
