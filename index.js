@@ -95,9 +95,9 @@ async function blabberMouth(client) {
     const roleId = blabberMouthId;
 
     const allMessages = await Promise.all([
-        channel1.messages.fetch({ limit: 100 }),
-        channel2.messages.fetch({ limit: 100 }),
-        channel3.messages.fetch({ limit: 100 }),
+        channel1.messages.fetch({ limit: 33 }),
+        channel2.messages.fetch({ limit: 33 }),
+        channel3.messages.fetch({ limit: 33 }),
     ]);
     
     const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);

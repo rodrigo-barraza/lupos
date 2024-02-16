@@ -7,6 +7,27 @@ const { primaryBrainModel, primaryBrainTemperature, primaryBrainMaxTokens, local
 const openAI = new OpenAI({apiKey: process.env.OPENAI_KEY})
 
 const AIWrapper = {
+    async generateVisionResponse(imageUrl, text) {
+        const response = await openAI.chat.completions.create({
+            model: 'gpt-4-vision-preview',
+            messages: [
+                {
+                    "role": "user",
+                    "content": [
+                        { "type": "text", "text": text ? text : "What’s in this image?" },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                            "url": imageUrl,
+                            },
+                        },
+                    ],
+                }
+            ],
+            max_tokens: 300,
+        }).catch((error) => console.error('OpenAI Error:\n', error));
+        return response;
+    },
     async generateResponse(conversation, maxTokens, model = 'gpt-4-0125-preview') {
         if (primaryBrainModel === 'GPT') {
             return response = await openAI.chat.completions.create({
