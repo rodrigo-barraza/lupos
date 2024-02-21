@@ -12,6 +12,9 @@ const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIWrapper = require('./wrappers/AIWrapper.js');
 const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
+const ComfyUILibrary = require('./libraries/ComfyUILibrary.js');
+
+// const websocket = ComfyUILibrary.instantiateWebSocket();
 
 const client = DiscordWrapper.instantiate();
 
@@ -199,38 +202,96 @@ client.on("ready", () => {
   }
 );
 
-client.on('messageCreate', async (message) => {
+let processingQueue = false;
+const queue = []
+    
+async function processQueue() {
+    if (processingQueue || queue.length === 0) {
+        return;
+    }
+    processingQueue = true;
+    while (queue.length > 0) {
+        const message = queue.shift();
+        await message.channel.sendTyping();
+        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    
+        let imageTextPromptConversation = [
+            {
+                role: 'system',
+                content: `
+                    You will always reply with an text-to-image prompt, and never break this rule.
+                    Do not make references to being helpful, or being a bot, or anything, you simply reply with a prompt to the best of your abilities.
+                    You just reply with a prompt, centered around what has been said to you.
+                    You are an expert at writing text-to-image prompts, for tools such as stable diffusion, midjourney, and other related platforms. 
+                    The prompt will start with: "a photograph painting of" and it will be very detailed and include everything that you were given.
+                    You will always include the portrait of an evil purple ghost wolf in the image.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: `Give me a prompt that has to do with this: ${message.content}`,
+            }
+        ]
+        let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 400, 'gpt-3.5-turbo-0125');
+    
+        const randomNumber = Math.random()
+        const shouldGenerateImage = randomNumber < 1.1
+    
+        let generatedImage, conversation;
+        if (shouldGenerateImage) {
+            [generatedImage, conversation] = await Promise.all([
+                ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content)),
+                AIService.generateConversation(message, client)
+            ]);
+        } else {
+            conversation = await AIService.generateConversation(message, client);
+        }
+    
+        console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content)
+    
+        let response = await AIWrapper.generateResponse(conversation);
+        clearInterval(sendTypingInterval);
+    
+        if (!response) {
+            message.reply("...");
+            return;
+        }
+    
+        const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+    
+        const messageChunkSizeLimit = 2000; 
+        
+        for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
+            const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+            // attach the image only in the last chunk
+            if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                await message.reply({
+                    content: chunk,
+                    files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
+                });
+            } else {
+                await message.reply({ content: chunk });
+            }
+        }    
+    }
+    processingQueue = false;
+}
 
+client.on('messageCreate', async (message) => {
     UtilityLibrary.detectHowlAndRespond(message)
     UtilityLibrary.detectMessageAndReact(message)
-
-    if (message.content.startsWith(IGNORE_PREFIX)) return;
-    // Reply only if the bot is mentioned, or if it's a direct message
-    if (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) return;
-
-    // if it's a DM and a message from the bot, ignore it
-    if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) return;
-
-    await message.channel.sendTyping();
-    const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-    let conversation = await AIService.generateConversation(message, client);
-    let response = await AIWrapper.generateResponse(conversation);
-    clearInterval(sendTypingInterval);
-
-    if (!response) {
-        message.reply("...");
+    
+    if (
+        message.content.startsWith(IGNORE_PREFIX) ||
+        (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) ||
+        (message.channel.type === ChannelType.DM && message.author.id === client.user.id)
+    ) {
         return;
     }
 
-    const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
-
-    const messageChunkSizeLimit = 2000; 
-    
-    for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
-        const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-        await message.reply({ content: chunk });
-    }
-    
+    queue.push(message);
+    await processQueue()
 });
 
 client.login(process.env.TOKEN);
