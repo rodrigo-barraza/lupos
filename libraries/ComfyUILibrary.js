@@ -111,7 +111,7 @@ const prompt = {
     },
     "7": {
       "inputs": {
-        "text": "",
+        "text": "watermark, signature",
         "clip": [
           "37",
           0
