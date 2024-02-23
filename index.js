@@ -253,7 +253,7 @@ async function processQueue() {
             for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
                 const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
                 // attach the image only in the last chunk
-                if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
                     await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
                     });
                 } else {
