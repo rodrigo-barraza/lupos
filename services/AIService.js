@@ -58,7 +58,7 @@ const AIService = {
         console.log(conversation)
         return conversation;
     },
-    async generateImage(message) {
+    async generateImage(message, content) {
         let imageTextPromptConversation = [
             {
                 role: 'system',
@@ -85,12 +85,17 @@ const AIService = {
             {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Make a prompt based on this: ${message.content}`,
+                content: `Make a prompt based on this: ${content ? content : message.content}`,
             }
         ]
         let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 240);
         console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content);
         const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
+        return generatedImage;
+    },
+    async generateImageFast(content) {
+        console.log('IMAGE PROMPT: ', content);
+        const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(content));
         return generatedImage;
     },
     async generateAudio(message) {

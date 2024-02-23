@@ -222,8 +222,8 @@ async function processQueue() {
     
         let generatedImage, conversation;
         if (shouldGenerateImage) {
-            [generatedImage, conversation] = await Promise.all([
-                AIService.generateImage(message, client),
+            [conversation] = await Promise.all([
+                // AIService.generateImage(message),
                 AIService.generateConversation(message, client)
             ]);
         } else {
@@ -239,6 +239,9 @@ async function processQueue() {
         }
     
         const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+
+        
+        generatedImage = await AIService.generateImageFast(responseMessage)
     
         const messageChunkSizeLimit = 2000;
 
@@ -247,7 +250,7 @@ async function processQueue() {
         if (shouldGenerateAudio) {
             const generatedAudio = await AIWrapper.generateAudioResponse(responseMessage);
             if (generatedAudio) {
-                await message.reply({ content: '', files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'audio.mp3' }] });
+                await message.reply({ content: '', files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] });
             }
         } else {
             for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
