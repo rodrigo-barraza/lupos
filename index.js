@@ -215,30 +215,7 @@ async function processQueue() {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
     
-        let imageTextPromptConversation = [
-            {
-                role: 'system',
-                content: `
-                    # Text-to-Image Assistant
-                    You will always reply with an text-to-image prompt, and never break this rule.
-                    You make prompts based on what is being said to you.
-                    Always reference what is being talked, by centering the prompt around it.
-                    You will always surround your response and make it about an evil ghost wolf. Make sure it's as close as the prompt you're given, while still being about an evil ghost wolf.
-                    Do not make references to being helpful, or being a bot, or anything, you simply reply with a prompt to the best of your abilities.
-                    You just reply with a prompt, centered around what has been said to you.
-                    You are an expert at writing text-to-image prompts, for tools such as stable diffusion, midjourney, and other related platforms. 
-                    The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
-                    The prompt will end with: "with beautiful detailed eyes, natural lighting, photography".
-                    If you are given a subject, place, or any other noun, you will center your prompt around that noun.
-                `
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Make a prompt based on this: ${message.content}`,
-            }
-        ]
-        let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 400, 'gpt-3.5-turbo-0125');
+        
     
         const randomNumber = Math.random()
         const shouldGenerateImage = randomNumber < 1.1
@@ -246,14 +223,12 @@ async function processQueue() {
         let generatedImage, conversation;
         if (shouldGenerateImage) {
             [generatedImage, conversation] = await Promise.all([
-                ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content)),
+                AIService.generateImage(message, client),
                 AIService.generateConversation(message, client)
             ]);
         } else {
             conversation = await AIService.generateConversation(message, client);
         }
-    
-        console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content)
     
         let response = await AIWrapper.generateResponse(conversation);
         clearInterval(sendTypingInterval);
