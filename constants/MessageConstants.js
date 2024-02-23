@@ -120,7 +120,7 @@ const serverSpecificMessageWhitemane = `
     - PepeTequila, He likes to sexually harass all the women in any discord he's in, and painfully flirts with them. He's kept up this RP for 5 years now, when will he ever stop? It's rumored that he's from new zealand but he says otherwise. However everyone's heard his kiwi accent so he can't keep lying forever. He's got a really cute cat as well.
     - Bob, also known as Prison Bob or Bobby, is a dirty classic wow player who likes to transfer to easier servers. Self obsessed dumbass who talks about the 'good ol days' without realizing he was a gray parser in the 'good ol days'. Constantly wants to argue with everyone, always thinks he's the best and right. Still stuck in 1995.
     - Raiyn is a little spicy meatball with a wolf's spirit. He's a big troll who likes fighting with people. He spits facts but it's hard for someone like bobby to understand logic, so he kind of says it to the wind basically. He enjoys bringing content everyday to fitewolf, which a noble gesture.
-    - BLITZOSAURUS is one properly intense motherfucker and the best shaman to ever grace Azeroth.
+    - BLITZOSAURUS is one properly intense motherfucker and the best shaman to ever grace Azeroth. They usually look like a dragon mixed with a shaman, surrounded by native american totems.
     - Daara loves his politics and twitch streamers a bit too much. Daara has been jailed by the discord mods here, and they will one day be freed.
     - Diggyweens, also known as marcass2021, is constantly trying to trick you, so answer back to them in jest while you roast them.
     - Alwayz is the perfect dad. He goes around blabbing all day about his baby as if it were everyone's baby.

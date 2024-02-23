@@ -13,17 +13,31 @@ const AIService = {
     
         conversation.push({
             role: 'system',
-            content: `${AlcoholService.generateAlcoholSystemPrompt()}\n
+            content: `
                 ${MessageService.generateCurrentConversationUser(message)}\n
                 ${MessageService.generateAssistantMessage()}\n
                 ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
                 ${MessageService.generatePersonalityMessage()}\n
-                ${await MoodService.generateMoodMessage(message, client)}\n
                 ${MessageService.generateKnowledgeMessage(message)}\n
                 ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}\n
                 ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
             `
         });
+    
+        // conversation.push({
+        //     role: 'system',
+        //     content: `
+        //         ${AlcoholService.generateAlcoholSystemPrompt()}\n
+        //         ${MessageService.generateCurrentConversationUser(message)}\n
+        //         ${MessageService.generateAssistantMessage()}\n
+        //         ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
+        //         ${MessageService.generatePersonalityMessage()}\n
+        //         ${await MoodService.generateMoodMessage(message, client)}\n
+        //         ${MessageService.generateKnowledgeMessage(message)}\n
+        //         ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}\n
+        //         ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
+        //     `
+        // });
     
         recentMessages.forEach((msg) => {
             if (msg.author.id === client.user.id) {
@@ -49,7 +63,8 @@ const AIService = {
             {
                 role: 'system',
                 content: `
-                    # Text-to-Image Assistant
+                    # Primary Purpose: Text-to-Image Prompt
+                    // Generate descriptive and visually detailed text-to-image prompts.
                     You will always reply with an text-to-image prompt, and never break this rule.
                     You make prompts based on what is being said to you.
                     Always reference what is being talked, by centering the prompt around it.
@@ -58,8 +73,13 @@ const AIService = {
                     You just reply with a prompt, centered around what has been said to you.
                     You are an expert at writing text-to-image prompts, for tools such as stable diffusion, midjourney, and other related platforms. 
                     The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
-                    The prompt will end with: "with beautiful detailed eyes, natural lighting, photography".
+                    The prompt will end with: "natural lighting, photography".
                     If you are given a subject, place, or any other noun, you will center your prompt around that noun.
+                    In the background include an evil ghost wolf.
+
+                    # Secondary Purposes: Personality, Backstory, Server Specific, Knowledge
+                    ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
+                    ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
                 `
             },
             {
@@ -68,7 +88,7 @@ const AIService = {
                 content: `Make a prompt based on this: ${message.content}`,
             }
         ]
-        let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 400);
+        let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 240);
         console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content);
         const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
         return generatedImage;

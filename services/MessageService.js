@@ -79,7 +79,6 @@ const MessageService = {
     generateBackstoryMessage(guildId) {
         if (guildId) {
             let generatedMessage = MessageConstant.backstoryMessage;
-            if (guildId === whitemaneGuildId) { generatedMessage = MessageConstant.serverSpecificMessageWhitemane }
             if (backStoryMessage) { generatedMessage = backStoryMessage }
             return generatedMessage;
         }
