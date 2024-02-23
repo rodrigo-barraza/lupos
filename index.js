@@ -250,7 +250,7 @@ async function processQueue() {
             const generatedAudio = await AIWrapper.generateAudioResponse(responseMessage);
             if (generatedAudio) {
                 clearInterval(sendTypingInterval);
-                await message.reply({ content: '', files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] });
+                await message.reply({ content: responseMessage, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] });
             }
         } else {
             for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
