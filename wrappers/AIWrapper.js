@@ -35,7 +35,7 @@ const AIWrapper = {
                 // model: 'gpt-3.5-turbo-0125',
                 model: model,
                 messages: conversation,
-                max_tokens: primaryBrainMaxTokens,
+                max_tokens: maxTokens ? maxTokens : primaryBrainMaxTokens,
             }).catch((error) => console.error('OpenAI Error:\n', error));
         } else if (primaryBrainModel === 'LOCAL') {
             const response = await fetch(localModelUrl, {
@@ -45,8 +45,8 @@ const AIWrapper = {
                 },
                 body: JSON.stringify({
                 messages: conversation,
-                temperature: maxTokens ? maxTokens : primaryBrainTemperature,
-                max_tokens: primaryBrainMaxTokens,
+                temperature: primaryBrainTemperature,
+                max_tokens: maxTokens ? maxTokens : primaryBrainMaxTokens,
                 stream: false
                 })
             }).catch(error => console.error('Error:', error));
