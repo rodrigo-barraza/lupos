@@ -231,7 +231,6 @@ async function processQueue() {
         }
     
         let response = await AIWrapper.generateResponse(conversation);
-        clearInterval(sendTypingInterval);
     
         if (!response) {
             message.reply("...");
@@ -250,6 +249,7 @@ async function processQueue() {
         if (shouldGenerateAudio) {
             const generatedAudio = await AIWrapper.generateAudioResponse(responseMessage);
             if (generatedAudio) {
+                clearInterval(sendTypingInterval);
                 await message.reply({ content: '', files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] });
             }
         } else {
@@ -257,9 +257,11 @@ async function processQueue() {
                 const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
                 // attach the image only in the last chunk
                 if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    clearInterval(sendTypingInterval);
                     await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
                     });
                 } else {
+                    clearInterval(sendTypingInterval);
                     await message.reply({ content: chunk });
                 }
             }   
