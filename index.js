@@ -240,18 +240,39 @@ async function processQueue() {
     
         const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
     
-        const messageChunkSizeLimit = 2000; 
-        
-        for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
-            const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-            // attach the image only in the last chunk
-            if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
-                });
-            } else {
-                await message.reply({ content: chunk });
+        const messageChunkSizeLimit = 2000;
+
+        const shouldGenerateAudio = true
+
+        if (shouldGenerateAudio) {
+            const generatedAudio = await AIWrapper.generateAudioResponse(responseMessage);
+            if (generatedAudio) {
+                await message.reply({ content: '', files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'audio.mp3' }] });
             }
-        }    
+        } else {
+            for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
+                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+                // attach the image only in the last chunk
+                if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
+                    });
+                } else {
+                    await message.reply({ content: chunk });
+                }
+            }   
+
+        }
+        
+        // for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
+        //     const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+        //     // attach the image only in the last chunk
+        //     if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
+        //         await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'audio.mp3' }]
+        //         });
+        //     } else {
+        //         await message.reply({ content: chunk });
+        //     }
+        // }    
     }
     processingQueue = false;
 }

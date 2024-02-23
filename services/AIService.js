@@ -65,6 +65,7 @@ const AIService = {
                 content: `
                     # Primary Purpose: Text-to-Image Prompt
                     // Generate descriptive and visually detailed text-to-image prompts.
+
                     You will always reply with an text-to-image prompt, and never break this rule.
                     You make prompts based on what is being said to you.
                     Always reference what is being talked, by centering the prompt around it.
@@ -75,7 +76,6 @@ const AIService = {
                     The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
                     The prompt will end with: "natural lighting, photography".
                     If you are given a subject, place, or any other noun, you will center your prompt around that noun.
-                    In the background include an evil ghost wolf.
 
                     # Secondary Purposes: Personality, Backstory, Server Specific, Knowledge
                     ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
@@ -93,6 +93,9 @@ const AIService = {
         const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
         return generatedImage;
     },
+    async generateAudio(message) {
+        
+    }
 };
 
 module.exports = AIService;

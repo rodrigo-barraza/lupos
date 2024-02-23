@@ -7,6 +7,15 @@ const { primaryBrainModel, primaryBrainTemperature, primaryBrainMaxTokens, local
 const openAI = new OpenAI({apiKey: process.env.OPENAI_KEY})
 
 const AIWrapper = {
+    async generateAudioResponse(text) {
+        const response = await openAI.audio.speech.create({
+            model: "tts-1",
+            voice: "alloy",
+            input: text,
+          }).catch((error) => console.error('OpenAI Error:\n', error));
+        const buffer = Buffer.from(await response.arrayBuffer());
+        return buffer;
+    },
     async generateVisionResponse(imageUrl, text) {
         const response = await openAI.chat.completions.create({
             model: 'gpt-4-vision-preview',
