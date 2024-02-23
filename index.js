@@ -221,20 +221,21 @@ async function processQueue() {
                 content: `
                     # Text-to-Image Assistant
                     You will always reply with an text-to-image prompt, and never break this rule.
+                    You make prompts based on what is being said to you.
+                    Always reference what is being talked, by centering the prompt around it.
+                    You will always surround your response and make it about an evil ghost wolf. Make sure it's as close as the prompt you're given, while still being about an evil ghost wolf.
                     Do not make references to being helpful, or being a bot, or anything, you simply reply with a prompt to the best of your abilities.
                     You just reply with a prompt, centered around what has been said to you.
                     You are an expert at writing text-to-image prompts, for tools such as stable diffusion, midjourney, and other related platforms. 
-                    The prompt will start with: "an evil purple shadow wolf" and it will be very detailed and include everything that you were given.
-                    The prompt will end with: "natural lighting, photography".
-                    You will always surround your response and make it about an evil purple ghost wolf. Make sure it's as close as the prompt you're given, while still being about an evil purple ghost wolf.
+                    The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
+                    The prompt will end with: "with beautiful detailed eyes, natural lighting, photography".
                     If you are given a subject, place, or any other noun, you will center your prompt around that noun.
-                    Always, always always, reference what is being talked about in the prompt, more than anything else.
                 `
             },
             {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Give me a prompt that has to do with this: ${message.content}`,
+                content: `Make a prompt based on this: ${message.content}`,
             }
         ]
         let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 400, 'gpt-3.5-turbo-0125');
@@ -270,9 +271,7 @@ async function processQueue() {
             const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
             // attach the image only in the last chunk
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                await message.reply({
-                    content: chunk,
-                    files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
+                await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
                 });
             } else {
                 await message.reply({ content: chunk });

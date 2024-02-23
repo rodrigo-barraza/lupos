@@ -210,8 +210,8 @@ const prompt = {
     },
     "34": {
       "inputs": {
-        "width": 1024,
-        "height": 768,
+        "width": 1536,
+        "height": 1024,
         "compression": 32,
         "batch_size": 1
       },
@@ -283,6 +283,8 @@ const ComfyUILibrary = {
     generateImagePrompt(message) {
         const fullPrompt = prompt
         if (message) {
+            fullPrompt["3"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+            fullPrompt["33"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
             fullPrompt["6"]["inputs"]["text"] = message;
         }
         return fullPrompt
