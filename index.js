@@ -241,7 +241,7 @@ async function processQueue() {
         const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
 
         
-        generatedImage = await AIService.generateImageFast(responseMessage)
+        generatedImage = await AIService.generateImage(message, responseMessage)
     
         const messageChunkSizeLimit = 2000;
 
