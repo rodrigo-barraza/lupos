@@ -10,6 +10,7 @@ const {
     GENERATE_IMAGE,
     GENERATE_AUDIO,
     BLABBERMOUTH,
+    DETECT_AND_REACT,
 } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
