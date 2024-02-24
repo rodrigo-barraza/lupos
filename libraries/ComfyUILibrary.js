@@ -199,7 +199,7 @@ const prompt = {
     "inputs": {
       "width": 1536,
       "height": 1024,
-      "compression": 38,
+      "compression": 48,
       "batch_size": 1
     },
     "class_type": "StableCascade_EmptyLatentImage",
