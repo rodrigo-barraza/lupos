@@ -9,6 +9,7 @@ const {
     loneWolfTheBlackListChannelId,
     GENERATE_IMAGE,
     GENERATE_AUDIO,
+    BLABBERMOUTH,
 } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -205,10 +206,12 @@ client.on("ready", () => {
     MoodService.instantiate();
     // checkBotPermissions(client, botTestingChannelId);
 
-    blabberMouth(client)
-    setInterval(() => {
+    if (BLABBERMOUTH) {
         blabberMouth(client)
-    }, 10 * 1000);
+        setInterval(() => {
+            blabberMouth(client)
+        }, 10 * 1000);
+    }
   }
 );
 
@@ -261,8 +264,10 @@ async function processQueue() {
 }
 
 client.on('messageCreate', async (message) => {
-    UtilityLibrary.detectHowlAndRespond(message)
-    UtilityLibrary.detectMessageAndReact(message)
+    if (DETECT_AND_REACT) {
+        UtilityLibrary.detectHowlAndRespond(message)
+        UtilityLibrary.detectMessageAndReact(message)
+    }
     
     if (
         message.content.startsWith(IGNORE_PREFIX) ||
