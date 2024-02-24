@@ -16,7 +16,7 @@ const UtilityLibrary = {
         return username;
     },
     getUsername(message) {
-        return message.author.displayName ? message.author.displayName : message.author.username;
+        return message.author.displayName ? message?.author?.username : message?.user?.username;
     },
     howl() {
         let howl = 'Aw';

@@ -1,5 +1,15 @@
 require('dotenv/config');
-const { botTestingChannelId, loneWolfFitewolfChannelId, loneWolfGeneralDiscussionChannelId, loneWolfPoliticsChannelId, loneWolfGuildId, blabberMouthId, loneWolfTheBlackListChannelId } = require('./config.json');
+const {
+    botTestingChannelId,
+    loneWolfFitewolfChannelId,
+    loneWolfGeneralDiscussionChannelId,
+    loneWolfPoliticsChannelId,
+    loneWolfGuildId,
+    blabberMouthId,
+    loneWolfTheBlackListChannelId,
+    GENERATE_IMAGE,
+    GENERATE_AUDIO,
+} = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Collection, Events, ChannelType } = require('discord.js');
@@ -226,16 +236,10 @@ async function processQueue() {
         const responseMessage = `${generatedResponse.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
         
         let generatedImage;
-        const shouldGenerateImage = true; // Math.random() < 1.1
-        if (shouldGenerateImage) {
-            generatedImage = await AIService.generateImage(message, responseMessage);
-        }
-
         let generatedAudio;
-        const shouldGenerateAudio = false;
-        if (shouldGenerateAudio) {
-            generatedAudio = await AIService.generateAudio(responseMessage);
-        }
+
+        if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
+        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(responseMessage) }
 
         client.user.setActivity(`Replying to ${UtilityLibrary.getUsername(message)}`, { type: 4 });
         const messageChunkSizeLimit = 2000;
