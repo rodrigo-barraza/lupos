@@ -207,6 +207,7 @@ const queue = []
     
 async function processQueue() {
     if (processingQueue || queue.length === 0) {
+        console.log('empty Queue')
         return;
     }
     processingQueue = true;
@@ -215,70 +216,43 @@ async function processQueue() {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
     
-        
+        let generatedResponse = await AIService.generateResponse(message);
     
-        const randomNumber = Math.random()
-        const shouldGenerateImage = randomNumber < 1.1
-    
-        let generatedImage, conversation;
-        if (shouldGenerateImage) {
-            [conversation] = await Promise.all([
-                // AIService.generateImage(message),
-                AIService.generateConversation(message, client)
-            ]);
-        } else {
-            conversation = await AIService.generateConversation(message, client);
-        }
-    
-        let response = await AIWrapper.generateResponse(conversation);
-    
-        if (!response) {
+        if (!generatedResponse) {
             message.reply("...");
             return;
         }
     
-        const responseMessage = `${response.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
-
+        const responseMessage = `${generatedResponse.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
         
-        generatedImage = await AIService.generateImage(message, responseMessage)
-    
-        const messageChunkSizeLimit = 2000;
-
-        const shouldGenerateAudio = true
-
-        if (shouldGenerateAudio) {
-            const generatedAudio = await AIWrapper.generateAudioResponse(responseMessage);
-            if (generatedAudio) {
-                clearInterval(sendTypingInterval);
-                await message.reply({ content: responseMessage, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] });
-            }
-        } else {
-            for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
-                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-                // attach the image only in the last chunk
-                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                    clearInterval(sendTypingInterval);
-                    await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }]
-                    });
-                } else {
-                    clearInterval(sendTypingInterval);
-                    await message.reply({ content: chunk });
-                }
-            }   
-
+        let generatedImage;
+        const shouldGenerateImage = true; // Math.random() < 1.1
+        if (shouldGenerateImage) {
+            generatedImage = await AIService.generateImage(message, responseMessage);
         }
-        
-        // for (let i = 0; i < responseMessage.length; i+= messageChunkSizeLimit) {
-        //     const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-        //     // attach the image only in the last chunk
-        //     if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
-        //         await message.reply({content: chunk, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'image.png' }, { attachment: Buffer.from(generatedAudio, 'base64'), name: 'audio.mp3' }]
-        //         });
-        //     } else {
-        //         await message.reply({ content: chunk });
-        //     }
-        // }    
+
+        let generatedAudio;
+        const shouldGenerateAudio = false;
+        if (shouldGenerateAudio) {
+            generatedAudio = await AIService.generateAudio(responseMessage);
+        }
+
+        client.user.setActivity(`Replying to ${UtilityLibrary.getUsername(message)}`, { type: 4 });
+        const messageChunkSizeLimit = 2000;
+        for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
+            const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+            clearInterval(sendTypingInterval);
+            let messageReplyOptions = { content: chunk };
+            if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] };
+            }
+            if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }] };
+            }
+            await message.reply(messageReplyOptions);
+        }
     }
+    MoodService.instantiate();
     processingQueue = false;
 }
 

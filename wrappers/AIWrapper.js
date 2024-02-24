@@ -10,7 +10,8 @@ const AIWrapper = {
     async generateAudioResponse(text) {
         const response = await openAI.audio.speech.create({
             model: "tts-1",
-            voice: "alloy",
+            voice: "onyx",
+            speed: 1.2,
             input: text,
           }).catch((error) => console.error('OpenAI Error:\n', error));
         const buffer = Buffer.from(await response.arrayBuffer());

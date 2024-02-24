@@ -5,6 +5,7 @@ const MessageService = require('../services/MessageService.js');
 const MoodService = require('../services/MoodService.js');
 const ComfyUILibrary = require('../libraries/ComfyUILibrary.js');
 const AIWrapper = require('../wrappers/AIWrapper.js');
+const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 
 const AIService = {
     async generateConversation(message, client) {
@@ -58,7 +59,16 @@ const AIService = {
         console.log(conversation)
         return conversation;
     },
-    async generateImage(message, content) {
+    async generateResponse(message) {
+        const client = DiscordWrapper.getClient();
+        client.user.setActivity('Generating a Response...', { type: 4 });
+        const generatedConversation = await AIService.generateConversation(message, client);
+        const generatedResponse = await AIWrapper.generateResponse(generatedConversation);
+        return generatedResponse;
+    },
+    async generateImage(message, text) {
+        const client = DiscordWrapper.getClient();
+        client.user.setActivity('Writing an Image Prompt...', { type: 4 });
         let imageTextPromptConversation = [
             {
                 role: 'system',
@@ -84,21 +94,27 @@ const AIService = {
             {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Make a prompt based on this: ${content ? content : message.content}`,
+                content: `Make a prompt based on this: ${text ? text : message.content}`,
             }
         ]
         let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 240);
         console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content);
+        client.user.setActivity('Painting an Image...', { type: 4 });
         const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
         return generatedImage;
     },
-    async generateImageFast(content) {
-        console.log('IMAGE PROMPT: ', content);
-        const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(content));
+    async generateImageFast(text) {
+        const client = DiscordWrapper.getClient();
+        client.user.setActivity('Painting an Image...', { type: 4 });
+        console.log('IMAGE PROMPT: ', text);
+        const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(text));
         return generatedImage;
     },
-    async generateAudio(message) {
-        
+    async generateAudio(text) {
+        const client = DiscordWrapper.getClient();
+        client.user.setActivity('Recording Audio...', { type: 4 });
+       const generatedAudio = await AIWrapper.generateAudioResponse(text);
+       return generatedAudio;
     }
 };
 
