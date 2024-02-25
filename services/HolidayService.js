@@ -1,4 +1,4 @@
-const AIWrapper = require('../wrappers/AIWrapper.js');
+const AIService = require('../services/AIService.js');
 const MoodService = require('../services/MoodService.js');
 const moment = require('moment')
 
@@ -154,7 +154,7 @@ const HolidayService = {
             `;
             userContent = `What is the next upcoming holiday, what dates does it go on, and how many days away is it?`;
         }
-        return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
+        return await AIService.generateResponseIsolated(systemContent, userContent, interaction);
     }
 }
 

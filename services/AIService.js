@@ -4,8 +4,26 @@ const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
 const MoodService = require('../services/MoodService.js');
 const ComfyUILibrary = require('../libraries/ComfyUILibrary.js');
-const AIWrapper = require('../wrappers/AIWrapper.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
+const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
+const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
+
+const {
+    GPT_MOOD_MODEL,
+    GPT_MOOD_TEMPERATURE,
+    GPT_OR_LOCAL
+} = require('../config.json');
+
+
+async function generateResponse(conversation, tokens, model) {
+    let generatedResponse;
+    if (GPT_OR_LOCAL === 'GPT') {
+        generatedResponse = await OpenAIWrapper.generateResponse(conversation, tokens, model);
+    } else if (GPT_OR_LOCAL === 'LOCAL') {
+        generatedResponse = await LocalAIWrapper.generateResponse(conversation, tokens, model);
+    }
+    return generatedResponse;
+}
 
 const AIService = {
     async generateConversation(message, client) {
@@ -59,17 +77,21 @@ const AIService = {
         console.log(conversation)
         return conversation;
     },
-    async generateResponse(message) {
+    async generateResponse(message, tokens, model) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
-        const generatedConversation = await AIService.generateConversation(message, client);
-        const generatedResponse = await AIWrapper.generateResponse(generatedConversation);
-        return generatedResponse;
+        const conversation = await AIService.generateConversation(message, client);
+        return generateResponse(conversation, tokens, model);
+    },
+    async generateResponseFromConversation(conversation, tokens, model) {
+        const client = DiscordWrapper.getClient();
+        client.user.setActivity('Generating a Response...', { type: 4 });
+        return generateResponse(conversation, tokens, model);
     },
     async generateImage(message, text) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Writing an Image Prompt...', { type: 4 });
-        let imageTextPromptConversation = [
+        let conversation = [
             {
                 role: 'system',
                 content: `
@@ -101,7 +123,7 @@ const AIService = {
                 content: `Make a prompt based on this: ${text ? text : message.content}`,
             }
         ]
-        let generatedImageTextPrompt = await AIWrapper.generateResponse(imageTextPromptConversation, 240);
+        let generatedImageTextPrompt = await AIService.generateResponseFromConversation(conversation, 240);
         console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content);
         client.user.setActivity('Painting an Image...', { type: 4 });
         const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
@@ -117,8 +139,54 @@ const AIService = {
     async generateAudio(text) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Recording Audio...', { type: 4 });
-       const generatedAudio = await AIWrapper.generateAudioResponse(text);
+       const generatedAudio = await OpenAIWrapper.generateAudioResponse(text);
        return generatedAudio;
+    },
+    async generateResponseIsolated(systemContent, userContent, interaction) {
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                    ${MessageService.generateCurrentConversationUser(interaction)}
+                    ${MessageService.generateBackstoryMessage(interaction.guild.id)}
+                    ${MessageService.generatePersonalityMessage()}
+                    ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
+                    ${MessageService.generateKnowledgeMessage(interaction)}
+                    ${systemContent}
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(interaction),
+                content: userContent,
+            }
+        ]
+
+        const response = await AIService.generateResponse(conversation);
+        return response.choices[0].message.content;
+    },
+    async generateMoodTemperature(message) {
+        await message.channel.sendTyping();
+        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                    ${MessageService.generateBackstoryMessage(message.guild?.id)}
+                    ${MessageService.generatePersonalityMessage()}
+                    You are an expert at telling if a conversation is positive, neutral or negative, but taking into account how your character would perceive it and react to it. You will only answer with a between from -10 to 10. -10 Being the most negative, 0 being mostly neutral, and 12 being as positive as possible. The number you pick between -10 to 10 will depend on the tone of the conversation, and nothing else. You do not type anything else besides the number that indicates the tone of the conversation. Only a number between -10 to 10, nothing else. You only output a number, an integer, nothing else.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: message.content,
+            }
+        ]
+
+        let response = await AIService.generateResponse(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
+        clearInterval(sendTypingInterval);
+        return response.choices[0].message.content;
     }
 };
 

@@ -1,14 +1,10 @@
 const moment = require('moment');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageConstant = require('../constants/MessageConstants.js');
-const { backStoryMessage, personalityMessage } = require('../config.json');
-
-const loneWolfGuildId = '1179859022199922768';
-const whitemaneGuildId = '609471635308937237';
+const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_MESSAGE, ASSISTANT_MESSAGE } = require('../config.json');
 
 const MessageService = {
     generateCurrentConversationUsers(client, message, recentMessages) {
-        const uniqueUserTags = [];
         if (message.guild) {
             let currentConversationUsers = `You are currently in a conversation with these people:\n`;
             const uniqueUsernames = [];
@@ -67,24 +63,22 @@ const MessageService = {
     generateServerSpecificMessage(guildId) {
         if (guildId) {
             let generatedMessage = '';
-            if (guildId === loneWolfGuildId || guildId === whitemaneGuildId) {
+            if (guildId === GUILD_ID_LONEWOLF || guildId === GUILD_ID_WHITEMANE) {
                 generatedMessage = MessageConstant.serverSpecificMessageWhitemane
             }
             return generatedMessage;
         }
     },
     generateAssistantMessage() {
-        return MessageConstant.assistantMessage;
+        return ASSISTANT_MESSAGE ? ASSISTANT_MESSAGE : MessageConstant.personalityMessage
     },
     generateBackstoryMessage(guildId) {
         if (guildId) {
-            let generatedMessage = MessageConstant.backstoryMessage;
-            if (backStoryMessage) { generatedMessage = backStoryMessage }
-            return generatedMessage;
+            return BACKSTORY_MESSAGE ? BACKSTORY_MESSAGE : MessageConstant.backstoryMessage
         }
     },
     generatePersonalityMessage() {
-        return personalityMessage ? personalityMessage : MessageConstant.personalityMessage
+        return PERSONALITY_MESSAGE ? PERSONALITY_MESSAGE : MessageConstant.personalityMessage
     },
 };
 

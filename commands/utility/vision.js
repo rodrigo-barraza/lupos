@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-const AIWrapper = require('../../wrappers/AIWrapper.js');
+const AIService = require('../../services/AIService.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,7 +15,7 @@ module.exports = {
         await interaction.deferReply();
         const text = interaction.options.getString('text');
         const imageUrl = interaction.options.getString('image');
-        const visionResponse = await AIWrapper.generateVisionResponse(imageUrl, text);
+        const visionResponse = await AIService.generateVisionResponse(imageUrl, text);
         await interaction.editReply(visionResponse.choices[0].message.content);
 	},
 };

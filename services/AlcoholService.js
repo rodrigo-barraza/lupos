@@ -1,4 +1,4 @@
-const AIWrapper = require('../wrappers/AIWrapper.js');
+const AIService = require('../services/AIService.js');
 
 let alcoholLevel = 0;
 

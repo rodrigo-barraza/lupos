@@ -1,32 +1,25 @@
 require('dotenv/config');
 const {
-    botTestingChannelId,
-    loneWolfFitewolfChannelId,
-    loneWolfGeneralDiscussionChannelId,
-    loneWolfPoliticsChannelId,
-    loneWolfGuildId,
-    blabberMouthId,
-    loneWolfTheBlackListChannelId,
+    CHANNEL_ID_LONEWOLF_FITEWOLF,
+    CHANNEL_ID_LONEWOLF_GENERAL_DISCUSSION,
+    CHANNEL_ID_LONEWOLF_POLITICS,
+    GUILD_ID_LONEWOLF,
+    ROLE_ID_BLABBERMOUTH,
     GENERATE_IMAGE,
     GENERATE_AUDIO,
     BLABBERMOUTH,
     DETECT_AND_REACT,
+    DISCORD_TOKEN,
 } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Collection, Events, ChannelType } = require('discord.js');
-const { OpenAI } = require('openai');
 const UtilityLibrary = require('./libraries/UtilityLibrary.js');
 const AlcoholService = require('./services/AlcoholService.js');
 const MoodService = require('./services/MoodService.js');
-const MessageService = require('./services/MessageService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
-const AIWrapper = require('./wrappers/AIWrapper.js');
 const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
-const ComfyUILibrary = require('./libraries/ComfyUILibrary.js');
-
-// const websocket = ComfyUILibrary.instantiateWebSocket();
 
 const client = DiscordWrapper.instantiate();
 
@@ -74,40 +67,14 @@ client.on(Events.InteractionCreate, async interaction => {
 
 const IGNORE_PREFIX = "!";
 
-async function checkBotPermissions(client, botTestingChannelId, roleName = 'Yapper') {
-    const channel = await client.channels.fetch(botTestingChannelId);
-    if (!channel) return console.log('Channel not found');
-    const guild = guild;
-    
-    const botMember = guild.members.cache.get(client.user.id);
-    if (!botMember) return console.log('Bot member not found in guild');
-    
-    const hasPermission = botMember.permissions.has("ManageRoles");
-    console.log(`Bot has ManageRoles permission: ${hasPermission}`);
-    
-    const role = guild.roles.cache.find(role => role.name === roleName);
-    if (!role) return console.log(`Role ${roleName} not found`);
-    
-    const botHighestRolePosition = botMember.roles.highest.position;
-    const rolePosition = role.position;
-    
-    console.log(`Bot's highest role position: ${botHighestRolePosition}, Target role position: ${rolePosition}`);
-    if (botHighestRolePosition <= rolePosition) {
-        console.log('Bot does not have a higher role than the target role. Cannot manage this role.');
-    } else {
-        console.log('Bot has the capability to manage the target role.');
-    }
-}
-
 let previousBlabberMouthId;
 
 async function blabberMouth(client) {
-    // find messages in specific channel
-    const channel1 = client.channels.cache.get(loneWolfFitewolfChannelId);
-    const channel2 = client.channels.cache.get(loneWolfGeneralDiscussionChannelId);
-    const channel3 = client.channels.cache.get(loneWolfPoliticsChannelId);
-    const guild = client.guilds.cache.get(loneWolfGuildId);
-    const roleId = blabberMouthId;
+    const channel1 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_FITEWOLF);
+    const channel2 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_GENERAL_DISCUSSION);
+    const channel3 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_POLITICS);
+    const guild = client.guilds.cache.get(GUILD_ID_LONEWOLF);
+    const roleId = ROLE_ID_BLABBERMOUTH;
 
     const allMessages = await Promise.all([
         channel1.messages.fetch({ limit: 33 }),
@@ -205,7 +172,6 @@ client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
     AlcoholService.instantiate();
     MoodService.instantiate();
-    // checkBotPermissions(client, botTestingChannelId);
 
     if (BLABBERMOUTH) {
         blabberMouth(client)
@@ -282,4 +248,4 @@ client.on('messageCreate', async (message) => {
     await processQueue()
 });
 
-client.login(process.env.TOKEN);
+client.login(DISCORD_TOKEN);

@@ -1,5 +1,5 @@
 const { ActivityType } = require('discord.js');
-const AIWrapper = require('../wrappers/AIWrapper.js');
+const AIService = require('../services/AIService.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 
 let moodLevel = 0;
@@ -158,7 +158,7 @@ const MoodService = {
         return currentMoodLevel;
     },
     async generateMoodMessage(message) {
-        const moodTemperature = await AIWrapper.generateMoodTemperature(message);
+        const moodTemperature = await AIService.generateMoodTemperature(message);
 
         if (moodTemperature <= -10) { MoodService.decreaseMoodLevel(6);
         } else if (moodTemperature >= -9 && moodTemperature <= -8) { MoodService.decreaseMoodLevel(5);

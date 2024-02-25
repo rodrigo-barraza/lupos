@@ -1,5 +1,5 @@
 const { ActivityType } = require('discord.js');
-const AIWrapper = require('../wrappers/AIWrapper.js');
+const AIService = require('../services/AIService.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const moment = require('moment')
 
@@ -74,7 +74,7 @@ const DarkmoonFaireService = {
             `;
             userContent = 'Can you explain when is the next Darkmoon Faire week, when does it go until, and how long does it last?';
         }
-        return await AIWrapper.generateInCharacterResponse(systemContent, userContent, interaction);
+        return await AIService.generateResponseIsolated(systemContent, userContent, interaction);
     },
 }
 

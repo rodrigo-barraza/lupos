@@ -3,6 +3,7 @@ const serverAddress = "127.0.0.1:8188";
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const clientId = crypto.randomBytes(20).toString('hex');
+const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 
 async function queuePrompt(prompt) {
     const response = await fetch(`http://${serverAddress}/prompt`, {
@@ -27,10 +28,22 @@ async function getHistory(promptId) {
     return await response.json();
 }
 
+function calculatePeriodsIncreaseOverTime(periods = '') {
+  // start with 1 period, then two, then three, and go back to one
+  let periodsIncreaseOverTime = periods + '.';
+  if (periodsIncreaseOverTime.length > 3) {
+    periodsIncreaseOverTime = '.';
+  }
+  return periodsIncreaseOverTime;
+  
+}
+
 async function getImages(prompt) {
     const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
     const { prompt_id: promptId } = await queuePrompt(prompt);
     const outputImages = {};
+    const client = DiscordWrapper.getClient();
+    let periodsOverTime = calculatePeriodsIncreaseOverTime()
 
     return new Promise((resolve, reject) => {
         websocket.onmessage = async (event) => {
@@ -197,9 +210,9 @@ const prompt = {
   },
   "34": {
     "inputs": {
-      "width": 1536,
+      "width": 1280,
       "height": 1024,
-      "compression": 48,
+      "compression": 38,
       "batch_size": 1
     },
     "class_type": "StableCascade_EmptyLatentImage",
