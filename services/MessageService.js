@@ -6,9 +6,10 @@ const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_ME
 const MessageService = {
     generateCurrentConversationUsers(client, message, recentMessages) {
         if (message.guild) {
-            let currentConversationUsers = `You are currently in a conversation with these people:\n`;
+            let currentConversationUsers = `💬 Conversation participants: `;
             const uniqueUsernames = [];
             const uniqueUserTags = [];
+
 
             recentMessages.forEach((recentMessage) => {
                 let username = '';
@@ -26,7 +27,7 @@ const MessageService = {
                     uniqueUserTags.indexOf(`<@${recentMessage.author.id}>`) === -1 &&
                     `<@${recentMessage.author.id}>` !== `<@${client.user.id}>`) {
                         userTag = `<@${recentMessage.author.id}>`;
-                        currentConversationUsers = currentConversationUsers + `${username} has this tag number: ${userTag}.\n`;
+                        currentConversationUsers = currentConversationUsers + `${username}(${recentMessage.author.id}) `;
                 }
                 uniqueUserTags.push(userTag);
             })
@@ -39,7 +40,11 @@ const MessageService = {
         const userId = message?.author?.id || message?.user?.id;
         if (username && userId) {
             const generatedMessage = `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)}, but there are other people in the chat. You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name. Do not do mention their name and tag them at the same time, only one.`;
-            console.log('Replying to: ' + username);
+            if (message.guild) {
+                console.log(`📝 Replying in ${message.guild.name}(${message.guild.id}) to ${username}(${userId})`);
+            } else {
+                console.log(`📝 Replying in a direct message to ${username}(${userId})`)
+            }
             return generatedMessage;
         }
     },

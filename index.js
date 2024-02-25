@@ -163,16 +163,24 @@ async function blabberMouth(client) {
 
     if (!areArraysEqual(oldYappers, mappedYappers)) {
         YapperService.setYappers(mappedYappers);
-        console.log('Current yappers:', mappedYappers);
+        console.log('🗣 Current yappers:', mappedYappers);
     }
 
+}
+
+function displayAllGuilds() {
+    let connectedGuildsText = 'Connected Guilds: '
+    client.guilds.cache.forEach(guild => {
+        connectedGuildsText += `${guild.name}(${guild.id}) `;
+    });
+    console.log(connectedGuildsText);
 }
 
 client.on("ready", () => {
     console.log(`Logged in as ${client.user.tag}!`);
     AlcoholService.instantiate();
     MoodService.instantiate();
-
+    displayAllGuilds()
     if (BLABBERMOUTH) {
         blabberMouth(client)
         setInterval(() => {
@@ -235,12 +243,25 @@ client.on('messageCreate', async (message) => {
         UtilityLibrary.detectHowlAndRespond(message)
         UtilityLibrary.detectMessageAndReact(message)
     }
+
+    if (message.content.startsWith(IGNORE_PREFIX)) {
+        return;
+    }
+
+    // Ignore all messages from the bot itself
+    if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) {
+        return;
+    }
+
+    // If the message contains lupos, processQueue every 1/3rd of the time
+    if (!message.mentions.has(client.user.displayName) && 
+        (message.content.toLowerCase().includes(client.user.displayName) && Math.random() < 1/3)) {
+        queue.push(message);
+        return await processQueue()
+    }
     
-    if (
-        message.content.startsWith(IGNORE_PREFIX) ||
-        (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) ||
-        (message.channel.type === ChannelType.DM && message.author.id === client.user.id)
-    ) {
+    // Ignore all messages if not in a DM or if the bot is not mentioned
+    if (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) {
         return;
     }
 
