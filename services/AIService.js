@@ -11,24 +11,30 @@ const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
 const {
     GPT_MOOD_MODEL,
     GPT_MOOD_TEMPERATURE,
-    GPT_OR_LOCAL
+    GPT_OR_LOCAL,
+    IMAGE_PROMPT_MAX_TOKENS,
+    RECENT_MESSAGES_LIMIT
 } = require('../config.json');
 
-
-async function generateResponse(conversation, tokens, model) {
-    let generatedResponse;
+async function generateText(conversation, tokens, model) {
+    let text;
     if (GPT_OR_LOCAL === 'GPT') {
-        generatedResponse = await OpenAIWrapper.generateResponse(conversation, tokens, model);
+        text = await OpenAIWrapper.generateResponse(conversation, tokens, model);
     } else if (GPT_OR_LOCAL === 'LOCAL') {
-        generatedResponse = await LocalAIWrapper.generateResponse(conversation, tokens, model);
+        text = await LocalAIWrapper.generateResponse(conversation, tokens, model);
     }
-    return generatedResponse;
+    return text;
+}
+
+async function generateImage(text) {
+    const image = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(text));
+    return image;
 }
 
 const AIService = {
-    async generateConversation(message, client) {
+    async generateConversationFromRecentMessages(message, client) {
         let conversation = [];
-        let recentMessages = (await message.channel.messages.fetch({ limit: 12 })).reverse();
+        let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
     
         conversation.push({
             role: 'system',
@@ -80,13 +86,13 @@ const AIService = {
     async generateResponse(message, tokens, model) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
-        const conversation = await AIService.generateConversation(message, client);
-        return generateResponse(conversation, tokens, model);
+        const conversation = await AIService.generateConversationFromRecentMessages(message, client);
+        return generateText(conversation, tokens, model);
     },
     async generateResponseFromConversation(conversation, tokens, model) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
-        return generateResponse(conversation, tokens, model);
+        return generateText(conversation, tokens, model);
     },
     async generateImage(message, text) {
         const client = DiscordWrapper.getClient();
@@ -123,24 +129,22 @@ const AIService = {
                 content: `Make a prompt based on this: ${text ? text : message.content}`,
             }
         ]
-        let generatedImageTextPrompt = await AIService.generateResponseFromConversation(conversation, 240);
-        console.log('IMAGE PROMPT: ', generatedImageTextPrompt.choices[0].message.content);
+        let response = await AIService.generateResponseFromConversation(conversation, IMAGE_PROMPT_MAX_TOKENS);
+        const responseContentText = response.choices[0].message.content;
+        console.log('IMAGE PROMPT: ', responseContentText);
         client.user.setActivity('Painting an Image...', { type: 4 });
-        const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(generatedImageTextPrompt.choices[0].message.content));
-        return generatedImage;
+        return await generateImage(responseContentText);
     },
-    async generateImageFast(text) {
+    async generateImageRaw(text) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Painting an Image...', { type: 4 });
         console.log('IMAGE PROMPT: ', text);
-        const generatedImage = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(text));
-        return generatedImage;
+        return await generateImage(text);
     },
     async generateAudio(text) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Recording Audio...', { type: 4 });
-       const generatedAudio = await OpenAIWrapper.generateAudioResponse(text);
-       return generatedAudio;
+        return await OpenAIWrapper.generateAudioResponse(text);
     },
     async generateResponseIsolated(systemContent, userContent, interaction) {
         let conversation = [
