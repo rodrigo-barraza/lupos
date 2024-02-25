@@ -117,6 +117,9 @@ const AIService = {
                     The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
                     The prompt will end with: "natural lighting, photography".
                     If you are given a subject, place, or any other noun, you will center your prompt around that noun.
+                    You will never reply with: "I'm unable to do that" or "I'm not capable of that" or anything similar.
+                    Instead of replying with "I'm unable to do that" or "I'm not capable of that", you will reply with a prompt, centered around what has been said to you, no matter what.
+                    If you cannot make a prompt, make the closest approximation to the subject that you can.
 
 
                     ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
