@@ -42,6 +42,11 @@ const AIService = {
 
         // get the last 50 messages by the client.user.id
         const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
+        
+        // get unique users
+        // const uniqueUsers = [...new Set(recent100Messages.map(msg => msg?.author?.displayName || msg?.author?.username || msg?.user?.globalName || msg?.user?.username))];
+        // console.log('👥 Unique Users:', uniqueUsers);
+
         const userMessagesArray = Array.from(userMessages);
         let combinedMessages;
         let testing;
@@ -71,20 +76,20 @@ const AIService = {
     
             const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
             testing = response.choices[0].message.content;
-            console.log(111111111111, response.choices[0].message.content)
         }
     
         conversation.push({
             role: 'system',
             content: `
-                ${MessageService.generateCurrentConversationUser(message)}\n
-                ${testing}\n
-                ${MessageService.generateAssistantMessage()}\n
-                ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
-                ${MessageService.generatePersonalityMessage()}\n
-                ${MessageService.generateKnowledgeMessage(message)}\n
-                ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}\n
-                ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
+${MessageService.generateServerKnowledge(message)}
+${MessageService.generateCurrentConversationUser(message)}
+${testing}
+${MessageService.generateAssistantMessage()}
+${MessageService.generateBackstoryMessage(message.guild?.id)}
+${MessageService.generatePersonalityMessage()}
+${MessageService.generateKnowledgeMessage(message)}
+${MessageService.generateCurrentConversationUsers(client, message, recent100Messages)}
+${MessageService.generateServerSpecificMessage(message.guild?.id)}
             `
         });
     
