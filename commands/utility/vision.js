@@ -15,7 +15,7 @@ module.exports = {
         await interaction.deferReply();
         const text = interaction.options.getString('text');
         const imageUrl = interaction.options.getString('image');
-        const visionResponse = await AIService.generateVisionResponse(imageUrl, text);
+        const visionResponse = await AIService.generateVision(imageUrl, text);
         await interaction.editReply(visionResponse.choices[0].message.content);
 	},
 };

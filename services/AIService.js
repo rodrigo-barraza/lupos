@@ -155,6 +155,10 @@ const AIService = {
         client.user.setActivity('Recording Audio...', { type: 4 });
         return await OpenAIWrapper.generateAudioResponse(text);
     },
+    async generateVision(imageUrl, text) {
+        const visionText = OpenAIWrapper.generateVisionResponse(imageUrl, text);
+        return visionText;
+    },
     async generateResponseIsolated(systemContent, userContent, interaction) {
         let conversation = [
             {

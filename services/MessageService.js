@@ -41,7 +41,7 @@ const MessageService = {
         if (username && userId) {
             const generatedMessage = `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)}, but there are other people in the chat. You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name. Do not do mention their name and tag them at the same time, only one.`;
             if (message.guild) {
-                console.log(`📝 Replying in ${message.guild.name}(${message.guild.id}) to ${username}(${userId})`);
+                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
             } else {
                 console.log(`📝 Replying in a direct message to ${username}(${userId})`)
             }
@@ -50,7 +50,6 @@ const MessageService = {
     },
     generateKnowledgeMessage(message){
         let generatedMessage = `
-            You are in the channel called: ${message.channel.name}.
             The current date is ${moment().format('MMMM Do YYYY')}.
             The current day is ${moment().format('dddd')}.
             When asked the time, you will say, the current time is ${moment().format('h:mm A')}.
@@ -59,6 +58,7 @@ const MessageService = {
         if (message.guild) {
             generatedMessage = generatedMessage +`
                 You are in the discord server called ${message.guild.name}.
+                You are in the channel called: ${message.channel.name}.
                 You are in a discord server with ${message.guild.memberCount} other members.
                 You are in a discord server with ${message.guild.members.cache.filter(member => member.user.bot).size} bots.
             `

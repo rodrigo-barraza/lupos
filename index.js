@@ -255,7 +255,7 @@ client.on('messageCreate', async (message) => {
 
     // If the message contains lupos, processQueue every 1/3rd of the time
     if (!message.mentions.has(client.user.displayName) && 
-        (message.content.toLowerCase().includes(client.user.displayName) && Math.random() < 1/3)) {
+        (message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && Math.random() < 0.333)) {
         queue.push(message);
         return await processQueue()
     }
