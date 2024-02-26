@@ -82,7 +82,7 @@ const prompt = {
   "3": {
     "inputs": {
       "seed": 687520558485300,
-      "steps": 20,
+      "steps": 30,
       "cfg": 4,
       "sampler_name": "euler_ancestral",
       "scheduler": "simple",
@@ -181,7 +181,7 @@ const prompt = {
   "33": {
     "inputs": {
       "seed": 294817137222856,
-      "steps": 5,
+      "steps": 10,
       "cfg": 1.4,
       "sampler_name": "dpmpp_sde",
       "scheduler": "sgm_uniform",

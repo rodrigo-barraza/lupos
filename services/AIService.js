@@ -137,7 +137,11 @@ const AIService = {
             }
         ]
         let response = await AIService.generateResponseFromConversation(conversation, IMAGE_PROMPT_MAX_TOKENS);
-        const responseContentText = response.choices[0].message.content;
+        let responseContentText = response.choices[0].message.content;
+        let notCapable = await AIService.generateNotCapableResponseCheck(message, responseContentText);
+        if (notCapable.toLowerCase() === 'yes') {
+            responseContentText = text ? text : message.content;
+        }
         console.log('🖼️ Image prompt: ', responseContentText);
         client.user.setActivity('Painting an Image...', { type: 4 });
         return await generateImage(responseContentText);
@@ -203,7 +207,32 @@ const AIService = {
         let response = await AIService.generateResponse(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
         clearInterval(sendTypingInterval);
         return response.choices[0].message.content;
-    }
+    },
+    async generateNotCapableResponseCheck(message, text) {
+        await message.channel.sendTyping();
+        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                    You are an expert at telling if the message provided is unable to be fulfilled.
+                    If the message is "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar, answer with "yes".
+                    You are an expert at telling if the message is "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar.
+                    You will answer with "no" if the message is not "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar.
+                    Do not type anything else besides "yes" or "no". Only "yes" or "no", nothing else.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: text,
+            }
+        ]
+
+        let response = await AIService.generateResponseFromConversation(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
+        clearInterval(sendTypingInterval);
+        return response.choices[0].message.content;
+    },
 };
 
 module.exports = AIService;
