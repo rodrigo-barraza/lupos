@@ -35,11 +35,50 @@ const AIService = {
     async generateConversationFromRecentMessages(message, client) {
         let conversation = [];
         let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
+        let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
+
+        const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
+
+
+        // get the last 50 messages by the client.user.id
+        const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
+        const userMessagesArray = Array.from(userMessages);
+        let combinedMessages;
+        let testing;
+        if (userMessagesArray.length > 0) {
+            combinedMessages = '';
+            userMessages.forEach((msg) => {
+                combinedMessages += msg.content + `\n`;
+            });
+
+            let customConversation = [
+                {
+                    role: 'system',
+                    content: `
+                        You are an expert at giving detailed summaries of what is said to you.
+                        You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+                        You will describe the messages that are sent to you as detailed and creative as possible.
+                        THe messages that are sent are what ${username} has been talking about.
+                    `
+                },
+                {
+                    role: 'user',
+                    name: UtilityLibrary.getUsernameNoSpaces(message),
+                    content: ` Here are the last recent messages by ${username} in this channel, and is what they have been talking about:
+                    ${combinedMessages}`,
+                }
+            ]
+    
+            const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
+            testing = response.choices[0].message.content;
+            console.log(111111111111, response.choices[0].message.content)
+        }
     
         conversation.push({
             role: 'system',
             content: `
                 ${MessageService.generateCurrentConversationUser(message)}\n
+                ${testing}\n
                 ${MessageService.generateAssistantMessage()}\n
                 ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
                 ${MessageService.generatePersonalityMessage()}\n
@@ -89,7 +128,7 @@ const AIService = {
         const conversation = await AIService.generateConversationFromRecentMessages(message, client);
         return generateText(conversation, tokens, model);
     },
-    async generateResponseFromConversation(conversation, tokens, model) {
+    async generateResponseFromCustomConversation(conversation, tokens, model) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
         return generateText(conversation, tokens, model);
@@ -136,7 +175,7 @@ const AIService = {
                 content: `Make a prompt based on this: ${text ? text : message.content}`,
             }
         ]
-        let response = await AIService.generateResponseFromConversation(conversation, IMAGE_PROMPT_MAX_TOKENS);
+        let response = await AIService.generateResponseFromCustomConversation(conversation, IMAGE_PROMPT_MAX_TOKENS);
         let responseContentText = response.choices[0].message.content;
         let notCapable = await AIService.generateNotCapableResponseCheck(message, responseContentText);
         if (notCapable.toLowerCase() === 'yes') {
@@ -229,7 +268,7 @@ const AIService = {
             }
         ]
 
-        let response = await AIService.generateResponseFromConversation(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
+        let response = await AIService.generateResponseFromCustomConversation(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
         clearInterval(sendTypingInterval);
         return response.choices[0].message.content;
     },
