@@ -225,12 +225,14 @@ async function processQueue() {
             const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
             clearInterval(sendTypingInterval);
             let messageReplyOptions = { content: chunk };
+            let files = [];
             if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' }] };
+                files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                messageReplyOptions = { ...messageReplyOptions, files: [{ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' }] };
+                files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
             }
+            messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
         }
     }
