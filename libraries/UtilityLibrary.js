@@ -33,9 +33,14 @@ const UtilityLibrary = {
             message.channel.send(howl);
         }
     },
-    detectMessageAndReact(message) {
+    async detectMessageAndReact(message) {
         if (message.author.id !== message.client.user.id && (message.content.toLowerCase().includes('lupos') || message.content.toLowerCase().includes('good dog') || message.content.toLowerCase().includes('good boy'))) {
-            message.react('1194383720946352200');
+            try {
+                await message.react('1194383720946352200');
+            } catch (error) {
+                // console.error('One of the emojis failed to react.');
+                // Usually because someone has blocked the bot, so the bot cannot react.
+            }
         }
     }
 };

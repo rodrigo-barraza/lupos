@@ -31,29 +31,69 @@ async function generateImage(text) {
     return image;
 }
 
+function getName(item) {
+    return item?.author?.displayName || item?.author?.username || item?.user?.globalName || item?.user?.username;
+}
+
 const AIService = {
     async generateConversationFromRecentMessages(message, client) {
         let conversation = [];
         let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
         let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
 
-        const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
-
-
         // get the last 50 messages by the client.user.id
         const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
         
         // get unique users
-        // const uniqueUsers = [...new Set(recent100Messages.map(msg => msg?.author?.displayName || msg?.author?.username || msg?.user?.globalName || msg?.user?.username))];
+        // const uniqueUsersByName = [...new Set(recent100Messages.map(msg => msg?.author?.displayName || msg?.author?.username || msg?.user?.globalName || msg?.user?.username))];
+        const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
+        // const uniqueUsersById = [...new Set(recent100Messages.map(msg => msg?.author?.id))];
         // console.log('👥 Unique Users:', uniqueUsers);
+
+        const arrayOfUsers = [];
+        
+        Array.from(uniqueUsers).forEach((user) => {
+            if (user === client.user.id) return;
+            const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
+
+            const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
+
+            let customConversation = [
+                {
+                    role: 'system',
+                    content: `
+                        You are an expert at giving detailed summaries of what is said to you.
+                        You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+                        You will describe the messages that are sent to you as detailed and creative as possible.
+                        THe messages that are sent are what ${getName(user)} has been talking about.
+                    `
+                },
+                {
+                    role: 'user',
+                    name: UtilityLibrary.getUsernameNoSpaces(message),
+                    content: ` Here are the last recent messages by ${getName(user)} in this channel, and is what they have been talking about:
+                    ${userMessagesAsText}`,
+                }
+            ]
+
+            arrayOfUsers.push(AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL));
+        });
+
+        const allMessages = await Promise.all(arrayOfUsers);
+
+        let combinedContent = '';
+        allMessages.forEach((msg) => {
+            combinedContent += msg.choices[0].message.content + `\n`;
+        });
 
         const userMessagesArray = Array.from(userMessages);
         let combinedMessages;
-        let testing;
+        let generateCurrentConversationUserSummary;
         if (userMessagesArray.length > 0) {
             combinedMessages = '';
             userMessages.forEach((msg) => {
-                combinedMessages += msg.content + `\n`;
+                combinedMessages += msg.content + `\n\n`;
+                combinedMessages += `# \n\n${msg.content}\n\n`;
             });
 
             let customConversation = [
@@ -63,32 +103,39 @@ const AIService = {
                         You are an expert at giving detailed summaries of what is said to you.
                         You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
                         You will describe the messages that are sent to you as detailed and creative as possible.
-                        THe messages that are sent are what ${username} has been talking about.
+                        THe messages that are sent are what ${getName(message)} has been talking about.
                     `
                 },
                 {
                     role: 'user',
                     name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: ` Here are the last recent messages by ${username} in this channel, and is what they have been talking about:
+                    content: ` Here are the last recent messages by ${getName(message)} in this channel, and is what they have been talking about:
                     ${combinedMessages}`,
                 }
             ]
     
             const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
-            testing = response.choices[0].message.content;
+            generateCurrentConversationUserSummary = response.choices[0].message.content;
         }
     
         conversation.push({
             role: 'system',
             content: `
+# General Information
+
+Your name is ${client.user.displayName}.
+Your id is ${client.user.id}.
+
+${MessageService.generateDateMessage(message)}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
-${testing}
+${generateCurrentConversationUserSummary}
+${combinedContent}
+
+${MessageService.generateCurrentConversationUsers(client, message, recent100Messages)}
 ${MessageService.generateAssistantMessage()}
 ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
-${MessageService.generateKnowledgeMessage(message)}
-${MessageService.generateCurrentConversationUsers(client, message, recent100Messages)}
 ${MessageService.generateServerSpecificMessage(message.guild?.id)}
             `
         });
@@ -102,7 +149,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         //         ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
         //         ${MessageService.generatePersonalityMessage()}\n
         //         ${await MoodService.generateMoodMessage(message, client)}\n
-        //         ${MessageService.generateKnowledgeMessage(message)}\n
+        //         ${MessageService.generateDateMessage(message)}\n
         //         ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}\n
         //         ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
         //     `
@@ -215,7 +262,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
                     ${MessageService.generateBackstoryMessage(interaction.guild.id)}
                     ${MessageService.generatePersonalityMessage()}
                     ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
-                    ${MessageService.generateKnowledgeMessage(interaction)}
+                    ${MessageService.generateDateMessage(interaction)}
                     ${systemContent}
                 `
             },

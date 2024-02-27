@@ -6,7 +6,7 @@ const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_ME
 const MessageService = {
     generateCurrentConversationUsers(client, message, recentMessages) {
         if (message.guild) {
-            let text = `\n# Conversation participant usernames, and ids\n\n`;
+            let text = `# Other Conversation Participants and their Ids\n\n`;
             let currentConversationUsers = `💬 Conversation participant usernames and their respective id: `;
             const uniqueUsernames = [];
             const uniqueUserTags = [];
@@ -41,28 +41,25 @@ const MessageService = {
         const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
         const userId = message?.author?.id || message?.user?.id;
         if (username && userId) {
-            let generatedMessage = `\n# Current conversation\n\n`;
+            let generatedMessage = `# Current Conversation\n\n`;
             if (message.guild) {
-                generatedMessage += `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)}, but there are other people in the chat.\n`;
+                generatedMessage += `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)} with .\nThere are also other people in the chat.\n`;
+                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
             } else {
                 console.log(`📝 Replying in a direct message to ${username}(${userId})`)
             }
-            generatedMessage += `You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name.\nDo not do mention  ${UtilityLibrary.capitalize(username)}'s and tag them at the same time, only one.\n`;
-                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
+            generatedMessage += `You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name.\nDo not do mention ${UtilityLibrary.capitalize(username)}'s and tag them at the same time, only one.\n`;
             return generatedMessage;
             
         }
     },
     generateServerKnowledge(message) {
         if (message.guild) {
-            return `# Discord server knowledge\n\nYou are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} other members, and ${message.guild.members.cache.filter(member => member.user.bot).size} bots.\nYou are in the channel called: ${message.channel.name}.`
+            return `# Discord Information\n\nYou are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${message.guild.members.cache.filter(member => member.user.bot).size} bots.\nYou are in the channel called: ${message.channel.name}.\n`
         }
     },
-    generateKnowledgeMessage(message){
-        return `
-        # The current date and time
-        
-        The current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.`;
+    generateDateMessage(message){
+        return `# Date and Time\n\nThe current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.\n`;
     },
     generateServerSpecificMessage(guildId) {
         if (guildId) {

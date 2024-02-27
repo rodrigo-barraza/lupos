@@ -234,6 +234,10 @@ async function processQueue() {
             }
             messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
+            // send message instead of reply
+            // find current channel its in?
+            // get the channel id?
+            // and use this id to send a message?
         }
     }
     MoodService.instantiate();
@@ -243,7 +247,7 @@ async function processQueue() {
 client.on('messageCreate', async (message) => {
     if (DETECT_AND_REACT) {
         UtilityLibrary.detectHowlAndRespond(message)
-        UtilityLibrary.detectMessageAndReact(message)
+        await UtilityLibrary.detectMessageAndReact(message)
     }
 
     if (message.content.startsWith(IGNORE_PREFIX)) {
