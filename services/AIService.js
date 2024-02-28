@@ -16,18 +16,18 @@ const {
     RECENT_MESSAGES_LIMIT
 } = require('../config.json');
 
-async function generateText(conversation, tokens, model) {
+async function generateTextResponse(conversation, tokens, model) {
     let text;
     if (GPT_OR_LOCAL === 'GPT') {
-        text = await OpenAIWrapper.generateResponse(conversation, tokens, model);
+        text = await OpenAIWrapper.generateTextResponse(conversation, tokens, model);
     } else if (GPT_OR_LOCAL === 'LOCAL') {
-        text = await LocalAIWrapper.generateResponse(conversation, tokens, model);
+        text = await LocalAIWrapper.generateTextResponse(conversation, tokens, model);
     }
     return text;
 }
 
 async function generateImage(text) {
-    const image = await ComfyUILibrary.getTheImages(ComfyUILibrary.generateImagePrompt(text));
+    const image = await ComfyUILibrary.generateImage(text);
     return image;
 }
 
@@ -79,11 +79,13 @@ const AIService = {
             arrayOfUsers.push(AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL));
         });
 
-        const allMessages = await Promise.all(arrayOfUsers);
+        const allMessages = await Promise.allSettled(arrayOfUsers);
 
         let combinedContent = '';
-        allMessages.forEach((msg) => {
-            combinedContent += msg.choices[0].message.content + `\n`;
+        allMessages.forEach((result) => {
+            if (result.status === 'fulfilled') {
+                combinedContent += result.value.choices[0]?.message.content + `\n`;
+            }
         });
 
         const userMessagesArray = Array.from(userMessages);
@@ -178,12 +180,12 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
         const conversation = await AIService.generateConversationFromRecentMessages(message, client);
-        return generateText(conversation, tokens, model);
+        return await generateTextResponse(conversation, tokens, model);
     },
     async generateResponseFromCustomConversation(conversation, tokens, model) {
         const client = DiscordWrapper.getClient();
         client.user.setActivity('Generating a Response...', { type: 4 });
-        return generateText(conversation, tokens, model);
+        return await generateTextResponse(conversation, tokens, model);
     },
     async generateImage(message, text) {
         const client = DiscordWrapper.getClient();
@@ -250,8 +252,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}
         return audio;
     },
     async generateVision(imageUrl, text) {
-        const visionText = OpenAIWrapper.generateVisionResponse(imageUrl, text);
-        return visionText;
+        return await OpenAIWrapper.generateVisionResponse(imageUrl, text);
     },
     async generateResponseIsolated(systemContent, userContent, interaction) {
         let conversation = [

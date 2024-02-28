@@ -263,7 +263,9 @@ client.on('messageCreate', async (message) => {
     if (!message.mentions.has(client.user.displayName) && 
         (message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && Math.random() < 0.333)) {
         queue.push(message);
-        return await processQueue()
+        if (!processingQueue) {
+            return await processQueue()
+        }
     }
     
     // Ignore all messages if not in a DM or if the bot is not mentioned
@@ -272,7 +274,9 @@ client.on('messageCreate', async (message) => {
     }
 
     queue.push(message);
-    await processQueue()
+    if (!processingQueue) {
+        return await processQueue()
+    }
 });
 
 client.login(DISCORD_TOKEN);

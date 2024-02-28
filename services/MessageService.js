@@ -43,7 +43,7 @@ const MessageService = {
         if (username && userId) {
             let generatedMessage = `# Current Conversation\n\n`;
             if (message.guild) {
-                generatedMessage += `You are in a conversation with, and replying directly to ${UtilityLibrary.capitalize(username)} with .\nThere are also other people in the chat.\n`;
+                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)}.\nThere are also other people in the chat.\n`;
                 console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
             } else {
                 console.log(`📝 Replying in a direct message to ${username}(${userId})`)

@@ -7,7 +7,7 @@ const {
 } = require('../config.json');
 
 const LocalAIWrapper = {
-    async generateResponse(conversation, tokens) {
+    async generateTextResponse(conversation, tokens) {
         const response = await fetch(LOCAL_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

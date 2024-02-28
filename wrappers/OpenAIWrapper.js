@@ -105,7 +105,7 @@ const OpenAIWrapper = {
         }).catch((error) => console.error('OpenAI Error:\n', error));
         return response;
     },
-    async generateResponse(conversation, tokens, model = GPT_RESPONSE_MODEL) {
+    async generateTextResponse(conversation, tokens, model = GPT_RESPONSE_MODEL) {
         return await openai.chat.completions.create({
             temperature: GPT_RESPONSE_TEMPERATURE,
             model: model,
