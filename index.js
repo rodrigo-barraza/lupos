@@ -169,7 +169,7 @@ async function blabberMouth(client) {
 }
 
 function displayAllGuilds() {
-    let connectedGuildsText = 'Connected Guilds: '
+    let connectedGuildsText = '🌎 Connected Guilds: '
     client.guilds.cache.forEach(guild => {
         connectedGuildsText += `${guild.name}(${guild.id}) `;
     });
@@ -177,7 +177,7 @@ function displayAllGuilds() {
 }
 
 client.on("ready", () => {
-    console.log(`Logged in as ${client.user.tag}!`);
+    console.log(`👌 Successfully Logged in as ${client.user.tag}!`);
     AlcoholService.instantiate();
     MoodService.instantiate();
     displayAllGuilds()
