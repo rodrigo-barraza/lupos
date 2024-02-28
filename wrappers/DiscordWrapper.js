@@ -23,6 +23,12 @@ const DiscordWrapper = {
     },
     getClient() {
         return client;
+    },
+    setActivity(message) {
+      return client.user.setActivity(message, { type: 4 });
+    },
+    getNameFromItem(item) {
+      return item?.author?.displayName || item?.author?.username || item?.user?.globalName || item?.user?.username;
     }
 };
 

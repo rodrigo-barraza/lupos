@@ -43,44 +43,68 @@ function calculatePeriodsIncreaseOverTime(periods = '') {
 }
 
 async function generateImage(prompt) {
-    const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
     try {
-        const { prompt_id: promptId } = await postPrompt(prompt);
-        const outputImages = {};
-    
         return new Promise((resolve, reject) => {
-            websocket.onmessage = async (event) => {
-                const message = JSON.parse(event.data);
-                if (message.type === 'executing') {
-                    const data = message.data;
-                    if (data.node === null && data.prompt_id === promptId) { // this is how we know that it's done rendering
-                        websocket.close();
-                        const history = await getHistory(promptId);
-                        const historyPromptId = history[promptId];
-                        for (const node_id in historyPromptId.outputs) {
-                            const nodeOutput = historyPromptId.outputs[node_id];
-                            if ('images' in nodeOutput) {
-                                const imagesOutput = [];
-                                for (const image of nodeOutput.images) {
-                                    const imageBuffer = await getImage(image.filename, image.subfolder, image.type);
-                                    // Convert buffer to base64
-                                    const base64Image = Buffer.from(imageBuffer).toString('base64');
-                                    imagesOutput.push(base64Image);
+            const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
+            websocket.onopen = async () => {
+                try {
+                    const { prompt_id: promptId } = await postPrompt(prompt);
+                    const outputImages = {};
+
+                    websocket.onmessage = async (event) => {
+                        const message = JSON.parse(event.data);
+                        if (message.type === 'executing' && message.data.node === null && message.data.prompt_id === promptId) {
+                            websocket.close();
+                            const history = await getHistory(promptId);
+                            const historyPromptId = history[promptId];
+                            for (const node_id in historyPromptId.outputs) {
+                                const nodeOutput = historyPromptId.outputs[node_id];
+                                if ('images' in nodeOutput) {
+                                    const imagesOutput = [];
+                                    for (const image of nodeOutput.images) {
+                                        const imageBuffer = await getImage(image.filename, image.subfolder, image.type);
+                                        const base64Image = Buffer.from(imageBuffer).toString('base64');
+                                        imagesOutput.push(base64Image);
+                                    }
+                                    outputImages[node_id] = imagesOutput;
                                 }
-                                outputImages[node_id] = imagesOutput;
                             }
+                            resolve(outputImages);
                         }
-                        resolve(outputImages);
-                    }
+                    };
+                } catch (innerError) {
+                    reject(innerError);
                 }
             };
-    
+
             websocket.onerror = (error) => {
-                reject(error);
+                reject();
+                // reject(new Error('WebSocket error: ' + error.message));
+                // resolve({})
             };
         });
     } catch (error) {
-        return console.error('Error generating image:', error);
+        console.error('Error generating image:', error);
+        throw error; // Rethrow or handle as needed.
+    }
+}
+
+async function checkWebsocketStatus() {
+    try {
+        return new Promise((resolve, reject) => {
+            const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
+            websocket.onopen = () => {
+                websocket.close();
+                resolve();
+            };
+            websocket.onerror = (error) => {
+                console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
+                reject();
+            };
+        })
+    } catch (error) {
+        console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
+        throw error;
     }
 }
 
@@ -298,9 +322,10 @@ const ComfyUILibrary = {
             const images = await generateImage(prompt);
             return images[43][0];
         } catch (error) {
-            return console.error('Error generating image:', error);
+            return console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
         }
-    }
+    },
+    checkWebsocketStatus: checkWebsocketStatus,
 };
 
 
