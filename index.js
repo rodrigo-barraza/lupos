@@ -165,7 +165,6 @@ async function blabberMouth(client) {
         YapperService.setYappers(mappedYappers);
         console.log('🗣 Current yappers:', mappedYappers);
     }
-
 }
 
 function displayAllGuilds() {
@@ -259,13 +258,15 @@ client.on('messageCreate', async (message) => {
     }
 
     // If the message contains lupos, processQueue every 1/3rd of the time
-    if (!message.mentions.has(client.user.displayName) && 
-        (message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && Math.random() < 0.333)) {
-        queue.push(message);
-        if (!processingQueue) {
-            return await processQueue()
-        }
-    }
+    // if (message.mentions.has(client.user.id) || 
+    //     (!message.mentions.has(client.user.id) && 
+    //     message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && 
+    //     Math.random() < 0.333)) {
+    //     queue.push(message);
+    //     if (!processingQueue) {
+    //         return await processQueue();
+    //     }
+    // }
     
     // Ignore all messages if not in a DM or if the bot is not mentioned
     if (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) {
