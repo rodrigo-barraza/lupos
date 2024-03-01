@@ -2,47 +2,29 @@ const moment = require('moment');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageConstant = require('../constants/MessageConstants.js');
 const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_MESSAGE, ASSISTANT_MESSAGE } = require('../config.json');
-const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
-
-// async function generateUsersSummary(client, message, recent100Messages) {
-//     const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
-
-//     const arrayOfUsers = uniqueUsers.map((user) => {
-//         if (user.author.id === client.user.id || user.author.id === message.author.id) return;
-//         const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
-//         const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
-//         let customConversation = [
-//             {
-//                 role: 'system',
-//                 content: `
-//                     You are an expert at giving detailed summaries of what is said to you.
-//                     You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
-//                     You will describe the messages that are sent to you as detailed and creative as possible.
-//                     The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
-//                 `
-//             },
-//             {
-//                 role: 'user',
-//                 name: UtilityLibrary.getUsernameNoSpaces(message),
-//                 content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
-//                 ${userMessagesAsText}`,
-//             }
-//         ];
-//         return AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
-//     }).filter(Boolean);
-
-//     const allMessages = await Promise.allSettled(arrayOfUsers);
-//     let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
-//     // generateCurrentConversationUsersSummary += '// These people are also in the chat,
-//     allMessages.forEach((result) => {
-//         if (result.status === 'fulfilled') {
-//             generateCurrentConversationUsersSummary += result.value.choices[0]?.message.content + `\n\n`;
-//         }
-//     });
-//     return generateCurrentConversationUsersSummary;
-// }
 
 const MessageService = {
+    generateCurrentConversationUser(message) {
+        const username = UtilityLibrary.discordUsername(message);
+        const userId = UtilityLibrary.discordUserId(message);
+        if (username && userId) {
+            let generatedMessage = `## Primary Participant Conversation\n\n`;
+            if (message.guild) {
+                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)} with id ${userId}.\n\n`;
+                const roles = UtilityLibrary.discordRoles(message);
+                if (roles) {
+                    generatedMessage += `${UtilityLibrary.capitalize(username)}'s character traits and roles: ${roles}.\n\n`;
+                }
+                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
+            } else {
+                console.log(`📝 Replying in a direct message to ${username}(${userId})`)
+            }
+            
+            generatedMessage += `Reply by mentioning ${UtilityLibrary.capitalize(username)}'s tag.\n\n`;
+            return generatedMessage;
+            
+        }
+    },
     async generateCurrentConversationUsers(client, message, recentMessages) {
         if (message.guild) {
             let text = `## Secondary Participants Names and their Ids\n\n`;
@@ -77,26 +59,7 @@ const MessageService = {
                 uniqueUserTags.push(userTag);
             })
             console.log(currentConversationUsers)
-            // text += await generateUsersSummary(client, message, recentMessages);
             return text;
-        }
-    },
-    generateCurrentConversationUser(message) {
-        const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
-        const userId = message?.author?.id || message?.user?.id;
-        if (username && userId) {
-            let generatedMessage = `## Primary Participant Conversation\n\n`;
-            if (message.guild) {
-                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)} with id ${userId}.\n`;
-                generatedMessage += `This is part of their character trait and roles: ${message.member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ')}.\n`;
-                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
-            } else {
-                console.log(`📝 Replying in a direct message to ${username}(${userId})`)
-            }
-            
-            generatedMessage += `You end your response by mentioning ${UtilityLibrary.capitalize(username)}'s name.\nDo not do mention ${UtilityLibrary.capitalize(username)}'s and tag them at the same time, only one.\n`;
-            return generatedMessage;
-            
         }
     },
     generateServerKnowledge(message) {

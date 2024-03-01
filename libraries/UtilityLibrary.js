@@ -24,6 +24,21 @@ const UtilityLibrary = {
         howl = howl + '!';
         return howl;
     },
+    formatId(item) {
+        return `@<${item.user.id}>`;
+    },
+    discordRoles(message) {
+        let roles = message.member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+        return roles;
+    },
+    discordUsername(message) {
+        const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
+        return username;
+    },
+    discordUserId(message) {
+        const userId = message?.author?.id || message?.user?.id;
+        return userId;
+    },
     detectHowlAndRespond(message) {
         if (message.content.toLowerCase().includes('!howl')) {
             const howl = UtilityLibrary.howl(message);
