@@ -68,7 +68,8 @@ const MessageService = {
                 if (recentMessage.author.id &&
                     uniqueUserTags.indexOf(`<@${recentMessage.author.id}>`) === -1 &&
                     `<@${recentMessage.author.id}>` !== `<@${client.user.id}>`) {
-                        let roles = message.guild.members.cache.get(recentMessage.author.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+                        let member = message.guild.members.cache.get(recentMessage.author.id);
+                        let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                         userTag = `<@${recentMessage.author.id}>`;
                         text += `${username} (${recentMessage.author.id}) has these traits and roles: ${roles}\n\n`;
                         currentConversationUsers += `${username}(${recentMessage.author.id}).`;

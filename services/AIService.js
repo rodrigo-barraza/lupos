@@ -111,10 +111,12 @@ const AIService = {
         const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, recent100Messages, userMessages);
         const generateUsersSummaryy = await generateUsersSummary(client, message, recent100Messages);
         const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
+
+        const roles = message.guild.members.cache.get(client.user.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
     
         conversation.push({
             role: 'system',
-            content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n
+            content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
 ${MessageService.generateDateMessage(message)}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
