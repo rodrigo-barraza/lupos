@@ -31,6 +31,74 @@ async function generateImage(text) {
     return image;
 }
 
+async function generateUsersSummary(client, message, recent100Messages) {
+    const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
+
+    const arrayOfUsers = uniqueUsers.map((user) => {
+        if (user.author.id === client.user.id || user.author.id === message.author.id) return;
+        const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
+        const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
+        let customConversation = [
+            {
+                role: 'system',
+                content: `
+                    You are an expert at giving detailed summaries of what is said to you.
+                    You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+                    You will describe the messages that are sent to you as detailed and creative as possible.
+                    The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
+                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
+                ${userMessagesAsText}`,
+            }
+        ];
+        return AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
+    }).filter(Boolean);
+
+    const allMessages = await Promise.allSettled(arrayOfUsers);
+    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversation\n\n';
+    // generateCurrentConversationUsersSummary += '// These people are also in the chat,
+    allMessages.forEach((result) => {
+        if (result.status === 'fulfilled') {
+            generateCurrentConversationUsersSummary += result.value.choices[0]?.message.content + `\n\n`;
+        }
+    });
+    return generateCurrentConversationUsersSummary;
+}
+
+async function generateCurrentUserSummary(client, message, recent100Messages, userMessages) {
+    let generateCurrentConversationUserSummary;
+    if (userMessages.size > 0) {
+        const combinedMessages = [...userMessages.values()].map(msg => msg.content).join('\n\n');
+        let customConversation = [
+            {
+                role: 'system',
+                content: `
+                    You are an expert at giving detailed summaries of what is said to you.
+                    Your name is ${client.user.displayName}.
+                    You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+                    You will describe the messages that are sent to you as detailed and creative as possible.
+                    The messages that are sent are what ${DiscordWrapper.getNameFromItem(message)} has been talking about.
+                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(message)} has been talking about", before the summary is given.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(message)} in this channel, and is what they have been talking about:
+                ${combinedMessages}`,
+            }
+        ];
+        const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
+        generateCurrentConversationUserSummary = response.choices[0]?.message.content;
+    }
+    return generateCurrentConversationUserSummary;
+}
+
 const AIService = {
     async generateConversationFromRecentMessages(message, client) {
         let conversation = [];
@@ -39,103 +107,24 @@ const AIService = {
 
         // get the last 50 messages by the client.user.id
         const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
-        
-        // get unique users
-        // const uniqueUsersByName = [...new Set(recent100Messages.map(msg => msg?.author?.displayName || msg?.author?.username || msg?.user?.globalName || msg?.user?.username))];
-        const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
-        // const uniqueUsersById = [...new Set(recent100Messages.map(msg => msg?.author?.id))];
-        // console.log('👥 Unique Users:', uniqueUsers);
 
-        const arrayOfUsers = [];
-        
-        Array.from(uniqueUsers).forEach((user) => {
-            if (user === client.user.id) return;
-            const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
-
-            const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
-
-            let customConversation = [
-                {
-                    role: 'system',
-                    content: `
-                        You are an expert at giving detailed summaries of what is said to you.
-                        You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
-                        You will describe the messages that are sent to you as detailed and creative as possible.
-                        THe messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
-                    `
-                },
-                {
-                    role: 'user',
-                    name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
-                    ${userMessagesAsText}`,
-                }
-            ]
-
-            arrayOfUsers.push(AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL));
-        });
-
-        const allMessages = await Promise.allSettled(arrayOfUsers);
-
-        let combinedContent = '';
-        allMessages.forEach((result) => {
-            if (result.status === 'fulfilled') {
-                combinedContent += result.value.choices[0]?.message.content + `\n`;
-            }
-        });
-
-        const userMessagesArray = Array.from(userMessages);
-        let combinedMessages;
-        let generateCurrentConversationUserSummary;
-        if (userMessagesArray.length > 0) {
-            combinedMessages = '';
-            userMessages.forEach((msg) => {
-                combinedMessages += msg.content + `\n\n`;
-                combinedMessages += `# \n\n${msg.content}\n\n`;
-            });
-
-            let customConversation = [
-                {
-                    role: 'system',
-                    content: `
-                        You are an expert at giving detailed summaries of what is said to you.
-                        You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
-                        You will describe the messages that are sent to you as detailed and creative as possible.
-                        THe messages that are sent are what ${DiscordWrapper.getNameFromItem(message)} has been talking about.
-                    `
-                },
-                {
-                    role: 'user',
-                    name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(message)} in this channel, and is what they have been talking about:
-                    ${combinedMessages}`,
-                }
-            ]
-    
-            const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
-            generateCurrentConversationUserSummary = response.choices[0].message.content;
-        }
+        const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, recent100Messages, userMessages);
+        const generateUsersSummaryy = await generateUsersSummary(client, message, recent100Messages);
+        const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
     
         conversation.push({
             role: 'system',
-            content: `
-# General Information
-
-Your name is ${client.user.displayName}.
-Your id is ${client.user.id}.
-
+            content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n
 ${MessageService.generateDateMessage(message)}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
-${generateCurrentConversationUserSummary}
-${combinedContent}
-
-${MessageService.generateCurrentConversationUsers(client, message, recent100Messages)}
+${generateCurrentUserSummaryy}
+${generateCurrentConversationUsers}
+${generateUsersSummaryy}
 ${MessageService.generateAssistantMessage()}
 ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
-${MessageService.generateServerSpecificMessage(message.guild?.id)}
-            `
+${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         });
     
         // conversation.push({

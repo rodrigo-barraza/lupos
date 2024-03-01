@@ -112,7 +112,13 @@ const OpenAIWrapper = {
             messages: conversation,
             max_tokens: tokens ? tokens : GPT_RESPONSE_MAX_TOKENS,
         }).catch((error) => console.error('OpenAI Error:\n', error));
-    }
+    },
+    async generateEmbedding(text) {
+        return await openai.embedding.create({
+            model: "text-embedding-ada-002",
+            input: text,
+        }).catch((error) => console.error('OpenAI Error:\n', error));
+    },
 };
 
 module.exports = OpenAIWrapper;
