@@ -60,7 +60,7 @@ async function generateUsersSummary(client, message, recent100Messages) {
     }).filter(Boolean);
 
     const allMessages = await Promise.allSettled(arrayOfUsers);
-    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversation\n\n';
+    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
     // generateCurrentConversationUsersSummary += '// These people are also in the chat,
     allMessages.forEach((result) => {
         if (result.status === 'fulfilled') {

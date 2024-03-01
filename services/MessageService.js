@@ -46,7 +46,7 @@ const MessageService = {
     async generateCurrentConversationUsers(client, message, recentMessages) {
         if (message.guild) {
             let text = `## Secondary Participants Names and their Ids\n\n`;
-            text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names and ids:\n\n`;
+            text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names, ids and traits/roles:\n\n`;
             let currentConversationUsers = `💬 Conversation participant usernames and their respective ids: `;
             const uniqueUsernames = [];
             const uniqueUserTags = [];
@@ -68,9 +68,10 @@ const MessageService = {
                 if (recentMessage.author.id &&
                     uniqueUserTags.indexOf(`<@${recentMessage.author.id}>`) === -1 &&
                     `<@${recentMessage.author.id}>` !== `<@${client.user.id}>`) {
+                        let roles = message.guild.members.cache.get(recentMessage.author.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
                         userTag = `<@${recentMessage.author.id}>`;
-                        text += `${username} (${recentMessage.author.id})\n\n`;
-                        currentConversationUsers = currentConversationUsers + `${username}(${recentMessage.author.id}) `;
+                        text += `${username} (${recentMessage.author.id}) has these traits and roles: ${roles}\n\n`;
+                        currentConversationUsers += `${username}(${recentMessage.author.id}).`;
                 }
                 uniqueUserTags.push(userTag);
             })
@@ -85,7 +86,7 @@ const MessageService = {
         if (username && userId) {
             let generatedMessage = `## Primary Participant Conversation\n\n`;
             if (message.guild) {
-                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)}.\n`;
+                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)} with id ${userId}.\n`;
                 generatedMessage += `This is part of their character trait and roles: ${message.member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ')}.\n`;
                 console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
             } else {
