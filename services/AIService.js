@@ -112,7 +112,7 @@ const AIService = {
         const generateUsersSummaryy = await generateUsersSummary(client, message, recent100Messages);
         const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
 
-        const roles = message.guild.members.cache.get(client.user.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+        const roles = UtilityLibrary.discordRoles(message.member);
     
         conversation.push({
             role: 'system',
