@@ -117,7 +117,7 @@ const AIService = {
         conversation.push({
             role: 'system',
             content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
-${MessageService.generateDateMessage(message)}
+${MessageService.generateDateMessage()}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
 ${generateCurrentUserSummaryy}
@@ -249,7 +249,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                     ${MessageService.generateBackstoryMessage(interaction.guild.id)}
                     ${MessageService.generatePersonalityMessage()}
                     ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
-                    ${MessageService.generateDateMessage(interaction)}
+                    ${MessageService.generateDateMessage()}
                     ${systemContent}
                 `
             },

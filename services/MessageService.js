@@ -6,75 +6,76 @@ const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_ME
 const MessageService = {
     generateCurrentConversationUser(message) {
         const username = UtilityLibrary.discordUsername(message);
-        const userId = UtilityLibrary.discordUserId(message);
-        if (username && userId) {
+        const userMention = UtilityLibrary.discordUserMention(message);
+        if (username && userMention) {
+            const capitalizedUsername = UtilityLibrary.capitalize(username);
+            const roles = UtilityLibrary.discordRoles(message.member);
             let generatedMessage = `## Primary Participant Conversation\n\n`;
             if (message.guild) {
-                generatedMessage += `You are replying directly to ${UtilityLibrary.capitalize(username)} with id ${userId}.\n\n`;
-                const roles = UtilityLibrary.discordRoles(message);
+                generatedMessage += `You are replying directly to ${capitalizedUsername} with tag ${userMention}.\n\n`;
                 if (roles) {
-                    generatedMessage += `${UtilityLibrary.capitalize(username)}'s character traits and roles: ${roles}.\n\n`;
+                    generatedMessage += `${capitalizedUsername}'s character traits and roles: ${roles}.\n\n`;
                 }
-                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userId})`);
+                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userMention})`);
             } else {
-                console.log(`📝 Replying in a direct message to ${username}(${userId})`)
+                console.log(`📝 Replying in a direct message to ${username}(${userMention})`)
             }
             
-            generatedMessage += `Reply by mentioning ${UtilityLibrary.capitalize(username)}'s tag.\n\n`;
+            generatedMessage += `Reply by mentioning ${capitalizedUsername}'s tag.\n\n`;
             return generatedMessage;
             
         }
     },
     async generateCurrentConversationUsers(client, message, recentMessages) {
         if (message.guild) {
-            let text = `## Secondary Participants Names and their Ids\n\n`;
-            text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names, ids and traits/roles:\n\n`;
-            let currentConversationUsers = `💬 Conversation participant usernames and their respective ids: `;
+            let text = `## Secondary Participants Names and their Tags\n\n`;
+            text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names, tags and traits/roles:\n\n`;
+            let log = `💬 Conversation participant usernames and their respective tags: `;
             const uniqueUsernames = [];
-            const uniqueUserTags = [];
-
+            const uniqueUserMentions = [];
 
             recentMessages.forEach((recentMessage) => {
-                if (message.author.id === recentMessage.author.id) return;
-                let username = '';
-                let userTag = '';
+                if (UtilityLibrary.discordUserId(message) === UtilityLibrary.discordUserId(recentMessage)) return;
 
-                if (recentMessage.author.displayName && uniqueUsernames.indexOf(recentMessage.author.displayName) === -1) {
-                    username = recentMessage.author.displayName;
-                } else if (!recentMessage.author.displayName) {
-                    username = recentMessage.author.username;
-                }
+                const botMention = UtilityLibrary.discordUserMention(client);
+                const userMention = UtilityLibrary.discordUserMention(recentMessage);
+
+                let username = UtilityLibrary.discordUsername(recentMessage);
+                let userTag = '';
 
                 uniqueUsernames.push(username);
 
                 if (recentMessage.author.id &&
-                    uniqueUserTags.indexOf(`<@${recentMessage.author.id}>`) === -1 &&
-                    `<@${recentMessage.author.id}>` !== `<@${client.user.id}>`) {
+                    uniqueUserMentions.indexOf(userMention) === -1 && userMention !== botMention) {
                         let member = message.guild.members.cache.get(recentMessage.author.id);
                         let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
-                        userTag = `<@${recentMessage.author.id}>`;
-                        text += `${username} (${recentMessage.author.id}) has these traits and roles: ${roles}\n\n`;
-                        currentConversationUsers += `${username}(${recentMessage.author.id}).`;
+                        userTag = userMention;
+                        text += `${username} (${userMention}) has these traits and roles: ${roles}\n\n`;
+                        log += `${username}(${recentMessage.author.id}).`;
                 }
-                uniqueUserTags.push(userTag);
+                uniqueUserMentions.push(userTag);
             })
-            console.log(currentConversationUsers)
+            console.log(log)
             return text;
         }
     },
     generateServerKnowledge(message) {
         let text = '';
         if (message.guild) {
-            text += `# Server Information\n\nYou are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${message.guild.members.cache.filter(member => member.user.bot).size} bots.\nYou are in the channel called: ${message.channel.name}.\n\n`;
+            text += `# Server Information\n\n`
+            text += `You are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${UtilityLibrary.discordBotsAmount(message)} bots.\n\n`
+            text += `You are in the channel called: ${message.channel.name}.\n\n`;
         }
         if (message.channel.topic) {
+            text += `## Channel Information\n\n`
             text += `The channel topic is: ${message.channel.topic}\n\n`
         }
-        text += `## How to tag someone\n\nTo mention, tag or reply to someone, you do it by typing "<@", followed by the tag number associated to them, and finish with ">".\n\n`
+        text += `## How to tag someone\n\n`
+        text += `To mention, tag or reply to someone, you do it by typing "<@", followed by the tag number associated to them, and finish with ">".\n\n`
         return text;
     },
-    generateDateMessage(message){
-        return `# Date and Time\n\nThe current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.\n`;
+    generateDateMessage(){
+        return `# Date and Time\n\nThe current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.\n\n`;
     },
     generateServerSpecificMessage(guildId) {
         if (guildId) {

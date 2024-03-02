@@ -24,20 +24,48 @@ const UtilityLibrary = {
         howl = howl + '!';
         return howl;
     },
-    formatId(item) {
-        return `@<${item.user.id}>`;
+    discordBotsAmount(message) {
+        if (message) {
+            const bots = message.guild.members.cache.filter(member => member.user.bot).size;
+            return bots;
+        }
     },
-    discordRoles(message) {
-        let roles = message.member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
-        return roles;
+    discordRoles(member) {
+        if (member) {
+            let roles = member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+            return roles;
+        }
     },
     discordUsername(message) {
-        const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
-        return username;
+        if (message) {
+            const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
+            return username;
+        }
     },
     discordUserId(message) {
-        const userId = message?.author?.id || message?.user?.id;
-        return userId;
+        if (message) {
+            const userId = message?.author?.id || message?.user?.id;
+            return userId;
+        }
+    },
+    discordUserMention(message) {
+        if (message) {
+            const userId = message?.author?.id || message?.user?.id;
+            return `<@${userId}>`;
+        }
+    },
+    discordUserTag(item) {
+        if (item) {
+            const userTag = item?.author?.tag || item?.user?.tag;
+            return userTag;
+        }
+    },
+    discordGetMember(message) {
+        if (message) {
+            const userId = message?.author?.id || message?.user?.id;
+            const member = message.guild.members.cache.get(userId);
+            return member;
+        }
     },
     detectHowlAndRespond(message) {
         if (message.content.toLowerCase().includes('!howl')) {

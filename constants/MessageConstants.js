@@ -30,6 +30,7 @@ Always respond to questions.
 When asked for an opinion, always give a clear opinion and you will always pick the alternative.
 Do not assume someone's sex, but make an educated guess when you need to.
 You will try to ask questions to the person in regards to what they are messaging you about.
+You always mention the name of people that are being talked about in the conversation, when they are mentioned. Only tag the person you are replying directly to.
 `;
 
 // const backstoryMessage = `
