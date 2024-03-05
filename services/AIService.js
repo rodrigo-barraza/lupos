@@ -7,6 +7,7 @@ const ComfyUILibrary = require('../libraries/ComfyUILibrary.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
+const BarkAIWrapper = require('../wrappers/BarkAIWrapper.js');
 
 const {
     GPT_MOOD_MODEL,
@@ -29,6 +30,12 @@ async function generateTextResponse(conversation, tokens, model) {
 async function generateImage(text) {
     const image = await ComfyUILibrary.generateImage(text);
     return image;
+}
+
+async function generateAudio(text) {
+    // const audio = await OpenAIWrapper.generateAudioResponse(text);
+    const audio = await BarkAIWrapper.generateAudio(text);
+    return audio.file_name;
 }
 
 async function generateUsersSummary(client, message, recent100Messages) {
@@ -105,7 +112,6 @@ const AIService = {
         let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
         let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
 
-        // get the last 50 messages by the client.user.id
         const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
 
         const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, recent100Messages, userMessages);
@@ -232,9 +238,9 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         console.log('🖼️ Image prompt: ', text);
         return await generateImage(text);
     },
-    async generateAudio(text) {
+    async generateAudio(message, text) {
         DiscordWrapper.setActivity(`Talking for ${DiscordWrapper.getNameFromItem(message)}...`);
-        const audio = await OpenAIWrapper.generateAudioResponse(text);
+        const audio = await generateAudio(text);
         return audio;
     },
     async generateVision(imageUrl, text) {
