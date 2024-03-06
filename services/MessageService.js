@@ -5,7 +5,7 @@ const { GUILD_ID_LONEWOLF, GUILD_ID_WHITEMANE, BACKSTORY_MESSAGE, PERSONALITY_ME
 
 const MessageService = {
     generateCurrentConversationUser(message) {
-        const username = UtilityLibrary.discordUsername(message);
+        const username = UtilityLibrary.discordUsername(message.author || message.member);
         const userMention = UtilityLibrary.discordUserMention(message);
         if (username && userMention) {
             const capitalizedUsername = UtilityLibrary.capitalize(username);
@@ -40,7 +40,7 @@ const MessageService = {
                 const botMention = UtilityLibrary.discordUserMention(client);
                 const userMention = UtilityLibrary.discordUserMention(recentMessage);
 
-                let username = UtilityLibrary.discordUsername(recentMessage);
+                let username = UtilityLibrary.discordUsername(recentMessage.author);
                 let userTag = '';
 
                 uniqueUsernames.push(username);

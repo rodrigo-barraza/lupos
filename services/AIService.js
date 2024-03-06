@@ -240,6 +240,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     },
     async generateAudio(message, text) {
         DiscordWrapper.setActivity(`Talking for ${DiscordWrapper.getNameFromItem(message)}...`);
+        console.log('🔊 Audio prompt: ', text);
         const audio = await generateAudio(text);
         return audio;
     },

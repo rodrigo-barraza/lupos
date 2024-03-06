@@ -36,9 +36,9 @@ const UtilityLibrary = {
             return roles;
         }
     },
-    discordUsername(message) {
-        if (message) {
-            const username = message?.author?.displayName || message?.author?.username || message?.user?.globalName || message?.user?.username;
+    discordUsername(authorOrUser) {
+        if (authorOrUser) {
+            const username = authorOrUser.displayName || authorOrUser.username || authorOrUser.globalName;
             return username;
         }
     },
