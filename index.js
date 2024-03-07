@@ -28,7 +28,8 @@ client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 // D:\develop\chatter is one level up from here
-const chatterPath = path.join(__dirname, '../chatter');
+// const chatterPath = path.join(__dirname, '../chatter');
+const chatterPath = '\\\\wsl.localhost\\Ubuntu\\home\\rodrigo\\chatter';
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);

@@ -171,7 +171,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     },
     async generateResponse(message, tokens, model) {
         const client = DiscordWrapper.getClient();
-        DiscordWrapper.setActivity(`Responding to ${DiscordWrapper.getNameFromItem(message)}...`);
+        DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
         const conversation = await AIService.generateConversationFromRecentMessages(message, client);
         return await generateTextResponse(conversation, tokens, model);
     },
@@ -181,7 +181,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     async generateImage(message, text) {
         try {
             await ComfyUILibrary.checkWebsocketStatus();
-            DiscordWrapper.setActivity(`Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
+            DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
             let conversation = [
                 {
                     role: 'system',
@@ -234,12 +234,12 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         }
     },
     async generateImageRaw(text) {
-        DiscordWrapper.setActivity(`Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
+        DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
         console.log('🖼️ Image prompt: ', text);
         return await generateImage(text);
     },
     async generateAudio(message, text) {
-        DiscordWrapper.setActivity(`Talking for ${DiscordWrapper.getNameFromItem(message)}...`);
+        DiscordWrapper.setActivity(`🗣️ Recording for ${DiscordWrapper.getNameFromItem(message)}...`);
         console.log('🔊 Audio prompt: ', text);
         const audio = await generateAudio(text);
         return audio;

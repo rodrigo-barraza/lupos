@@ -8,7 +8,7 @@ const {
 
 const BarkAIWrapper = {
     async generateAudio(text) {
-        const response = await fetch('http://localhost:444/audio', {
+        const response = await fetch('http://localhost:5000/audio', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
