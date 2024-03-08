@@ -114,14 +114,22 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
 const AIService = {
     async generateConversationFromRecentMessages(message, client) {
         let conversation = [];
-        let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
+        // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
         let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
 
-        const userMessages = recent100Messages.filter(msg => msg.author.id === message.author.id);
+        let recent100MessagesArray = recent100Messages.map((msg) => msg);
 
-        const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, recent100Messages, userMessages);
-        const generateUsersSummaryy = await generateUsersSummary(client, message, recent100Messages);
-        const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
+        const authorId = message.author.id
+
+        const lastAuthorIndex = recent100MessagesArray.map(msg => msg.author.id).lastIndexOf(authorId);
+        const filteredRecent100Messages = recent100MessagesArray.slice(0, lastAuthorIndex + 1);
+        const recentMessages = filteredRecent100Messages.slice(-RECENT_MESSAGES_LIMIT);
+
+        const userMessages = recent100Messages.filter(msg => msg.author.id === authorId);
+
+        const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
+        const generateUsersSummaryy = await generateUsersSummary(client, message, filteredRecent100Messages);
+        const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, filteredRecent100Messages);
 
         const roles = UtilityLibrary.discordRoles(message.member);
 
