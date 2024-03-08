@@ -8,21 +8,25 @@ const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
 const BarkAIWrapper = require('../wrappers/BarkAIWrapper.js');
+const AnthrophicWrapper = require('../wrappers/AnthropicWrapper.js');
 
 const {
-    GPT_MOOD_MODEL,
-    GPT_MOOD_TEMPERATURE,
-    GPT_OR_LOCAL,
-    IMAGE_PROMPT_MAX_TOKENS,
-    RECENT_MESSAGES_LIMIT
+    LANGUAGE_MODEL_TYPE,
+    OPENAI_LANGUAGE_MODEL_FAST,
+    RECENT_MESSAGES_LIMIT,
+    IMAGE_MODEL_TYPE,
+    IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS,
+    IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE,
 } = require('../config.json');
 
-async function generateTextResponse(conversation, tokens, model) {
+async function generateText({ conversation, type = LANGUAGE_MODEL_TYPE, performance, tokens }) {
     let text;
-    if (GPT_OR_LOCAL === 'GPT') {
-        text = await OpenAIWrapper.generateTextResponse(conversation, tokens, model);
-    } else if (GPT_OR_LOCAL === 'LOCAL') {
-        text = await LocalAIWrapper.generateTextResponse(conversation, tokens, model);
+    if (type === 'OPENAI') {
+        text = await OpenAIWrapper.generateText(conversation, tokens, performance);
+    } else if (type === 'ANTHROPIC') {
+        text = await AnthrophicWrapper.generateText(conversation, tokens, performance);
+    } else if (type === 'LOCAL') {
+        text = await LocalAIWrapper.generateText(conversation, tokens);
     }
     return text;
 }
@@ -39,49 +43,50 @@ async function generateAudio(text) {
 }
 
 async function generateUsersSummary(client, message, recent100Messages) {
-    const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
+    // const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
 
-    const arrayOfUsers = uniqueUsers.map((user) => {
-        if (user.author.id === client.user.id || user.author.id === message.author.id) return;
-        const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
-        const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
-        let customConversation = [
-            {
-                role: 'system',
-                content: `
-                    You are an expert at giving detailed summaries of what is said to you.
-                    You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
-                    You will describe the messages that are sent to you as detailed and creative as possible.
-                    The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
-                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
-                `
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
-                ${userMessagesAsText}`,
-            }
-        ];
-        return AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
-    }).filter(Boolean);
+    // const arrayOfUsers = uniqueUsers.map((user) => {
+    //     if (user.author.id === client.user.id || user.author.id === message.author.id) return;
+    //     const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
+    //     const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
+    //     let conversation = [
+    //         {
+    //             role: 'system',
+    //             content: `
+    //                 You are an expert at giving detailed summaries of what is said to you.
+    //                 You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+    //                 You will describe the messages that are sent to you as detailed and creative as possible.
+    //                 The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
+    //                 Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
+    //             `
+    //         },
+    //         {
+    //             role: 'user',
+    //             name: UtilityLibrary.getUsernameNoSpaces(message),
+    //             content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
+    //             ${userMessagesAsText}`,
+    //         }
+    //     ];
+    //     const usersSummary = generateText({ conversation, performance });
+    //     return usersSummary;
+    // }).filter(Boolean);
 
-    const allMessages = await Promise.allSettled(arrayOfUsers);
-    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
-    // generateCurrentConversationUsersSummary += '// These people are also in the chat,
-    allMessages.forEach((result) => {
-        if (result.status === 'fulfilled') {
-            generateCurrentConversationUsersSummary += result.value.choices[0]?.message.content + `\n\n`;
-        }
-    });
-    return generateCurrentConversationUsersSummary;
+    // const allMessages = await Promise.allSettled(arrayOfUsers);
+    // let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
+    // // generateCurrentConversationUsersSummary += '// These people are also in the chat,
+    // allMessages.forEach((result) => {
+    //     if (result.status === 'fulfilled') {
+    //         generateCurrentConversationUsersSummary += result.value + `\n\n`;
+    //     }
+    // });
+    // return generateCurrentConversationUsersSummary;
 }
 
 async function generateCurrentUserSummary(client, message, recent100Messages, userMessages) {
     let generateCurrentConversationUserSummary;
     if (userMessages.size > 0) {
         const combinedMessages = [...userMessages.values()].map(msg => msg.content).join('\n\n');
-        let customConversation = [
+        let conversation = [
             {
                 role: 'system',
                 content: `
@@ -100,8 +105,8 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
                 ${combinedMessages}`,
             }
         ];
-        const response = await AIService.generateResponseFromCustomConversation(customConversation, 360, GPT_MOOD_MODEL);
-        generateCurrentConversationUserSummary = response.choices[0]?.message.content;
+        const response = await generateText({ conversation, performance: 'FAST', tokens: 360 })
+        generateCurrentConversationUserSummary = response;
     }
     return generateCurrentConversationUserSummary;
 }
@@ -119,7 +124,7 @@ const AIService = {
         const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, recent100Messages);
 
         const roles = UtilityLibrary.discordRoles(message.member);
-    
+
         conversation.push({
             role: 'system',
             content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
@@ -134,7 +139,7 @@ ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
 ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         });
-    
+
         // conversation.push({
         //     role: 'system',
         //     content: `
@@ -149,7 +154,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         //         ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
         //     `
         // });
-    
+
         recentMessages.forEach((msg) => {
             if (msg.author.id === client.user.id) {
                 conversation.push({
@@ -161,22 +166,22 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                 conversation.push({
                     role: 'user',
                     name: UtilityLibrary.getUsernameNoSpaces(msg),
-                    content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username) } said ${msg.content}.`,
+                    content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username)} said ${msg.content}.`,
                 })
             }
         })
-    
+
         console.log('📜 Conversation:', conversation)
         return conversation;
     },
-    async generateResponse(message, tokens, model) {
+    async generateText({ message, type, performance, tokens }) {
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
         const conversation = await AIService.generateConversationFromRecentMessages(message, client);
-        return await generateTextResponse(conversation, tokens, model);
+        return await generateText({ conversation, type, performance, tokens });
     },
-    async generateResponseFromCustomConversation(conversation, tokens, model) {
-        return await generateTextResponse(conversation, tokens, model);
+    async generateResponseFromCustomConversation(conversation, type = LANGUAGE_MODEL_TYPE, performance = 'POWERFUL', tokens = 360) {
+        return await generateText({ conversation, type, performance, tokens });
     },
     async generateImage(message, text) {
         try {
@@ -221,8 +226,8 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                     content: `Make a prompt based on this: ${text ? text : message.content}`,
                 }
             ]
-            let response = await AIService.generateResponseFromCustomConversation(conversation, IMAGE_PROMPT_MAX_TOKENS);
-            let responseContentText = response.choices[0].message.content;
+            const response = await generateText({ conversation, type: IMAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+            let responseContentText = response;
             let notCapable = await AIService.generateNotCapableResponseCheck(message, responseContentText);
             if (notCapable.toLowerCase() === 'yes') {
                 responseContentText = text ? text : message.content;
@@ -247,29 +252,6 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     async generateVision(imageUrl, text) {
         return await OpenAIWrapper.generateVisionResponse(imageUrl, text);
     },
-    async generateResponseIsolated(systemContent, userContent, interaction) {
-        let conversation = [
-            {
-                role: 'system',
-                content: `
-                    ${MessageService.generateCurrentConversationUser(interaction)}
-                    ${MessageService.generateBackstoryMessage(interaction.guild.id)}
-                    ${MessageService.generatePersonalityMessage()}
-                    ${MessageService.generateServerSpecificMessage(interaction.guild.id)}
-                    ${MessageService.generateDateMessage()}
-                    ${systemContent}
-                `
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(interaction),
-                content: userContent,
-            }
-        ]
-
-        const response = await AIService.generateResponse(conversation);
-        return response.choices[0].message.content;
-    },
     async generateMoodTemperature(message) {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
@@ -288,10 +270,10 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                 content: message.content,
             }
         ]
-
-        let response = await AIService.generateResponse(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
+        
+        let response = await generateText({ conversation, type: 'GPT', performance: 'FAST', tokens: 3 });
         clearInterval(sendTypingInterval);
-        return response.choices[0].message.content;
+        return response;
     },
     async generateNotCapableResponseCheck(message, text) {
         await message.channel.sendTyping();
@@ -313,10 +295,10 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                 content: text,
             }
         ]
-
-        let response = await AIService.generateResponseFromCustomConversation(conversation, GPT_MOOD_TEMPERATURE, GPT_MOOD_MODEL);
+        
+        const response = await generateText({ conversation, type: 'GPT', performance: 'FAST', tokens: 3 })
         clearInterval(sendTypingInterval);
-        return response.choices[0].message.content;
+        return response;
     },
 };
 

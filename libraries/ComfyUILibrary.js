@@ -1,13 +1,15 @@
-const serverAddress = "127.0.0.1:8188";
-// const clientId = randomUUID();
 const WebSocket = require('ws');
 const crypto = require('crypto');
 const clientId = crypto.randomBytes(20).toString('hex');
-const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
+
+const {
+    COMFY_UI_IMAGE_MODEL_API_URL,
+    COMFY_UI_IMAGE_MODEL_WEBSOCKET_URL,
+} = require('../config.json');
 
 async function postPrompt(prompt) {
     try {
-        const response = await fetch(`http://${serverAddress}/prompt`, {
+        const response = await fetch(`${COMFY_UI_IMAGE_MODEL_API_URL}/prompt`, {
             method: 'POST',
             body: JSON.stringify({ prompt: prompt, client_id: clientId }),
             headers: { 'Content-Type': 'application/json' },
@@ -20,12 +22,12 @@ async function postPrompt(prompt) {
 
 async function getImage(filename, subfolder, folderType) {
     const params = new URLSearchParams({ filename, subfolder, type: folderType });
-    const response = await fetch(`http://${serverAddress}/view?${params}`);
+    const response = await fetch(`${COMFY_UI_IMAGE_MODEL_API_URL}/view?${params}`);
     return response.arrayBuffer(); // Use arrayBuffer for binary data
 }
 
 async function getHistory(promptId) {
-    const response = await fetch(`http://${serverAddress}/history/${promptId}`, {
+    const response = await fetch(`${COMFY_UI_IMAGE_MODEL_API_URL}/history/${promptId}`, {
         method: 'GET',
         headers: { 'Accept': 'application/json' }
     });
@@ -45,7 +47,7 @@ function calculatePeriodsIncreaseOverTime(periods = '') {
 async function generateImage(prompt) {
     try {
         return new Promise((resolve, reject) => {
-            const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
+            const websocket = new WebSocket(`${COMFY_UI_IMAGE_MODEL_WEBSOCKET_URL}/ws?clientId=${clientId}`);
             websocket.onopen = async () => {
                 try {
                     const { prompt_id: promptId } = await postPrompt(prompt);
@@ -92,7 +94,7 @@ async function generateImage(prompt) {
 async function checkWebsocketStatus() {
     try {
         return new Promise((resolve, reject) => {
-            const websocket = new WebSocket(`ws://${serverAddress}/ws?clientId=${clientId}`);
+            const websocket = new WebSocket(`${COMFY_UI_IMAGE_MODEL_WEBSOCKET_URL}/ws?clientId=${clientId}`);
             websocket.onopen = () => {
                 websocket.close();
                 resolve();

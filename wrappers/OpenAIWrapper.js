@@ -1,14 +1,15 @@
 require('dotenv/config');
 const { OpenAI } = require('openai');
 const {
-    GPT_RESPONSE_TEMPERATURE,
-    GPT_RESPONSE_MAX_TOKENS,
-    GPT_RESPONSE_MODEL,
-    GPT_VISION_MODEL,
-    GPT_VOICE_MODEL,
-    GPT_VOICE_VOICE,
-    GPT_VOICE_SPEED,
-    GPT_VISION_MAX_TOKENS,
+    LANGUAGE_MODEL_TEMPERATURE,
+    LANGUAGE_MODEL_MAX_TOKENS,
+    OPENAI_LANGUAGE_MODEL_POWERFUL,
+    OPENAI_LANGUAGE_MODEL_FAST,
+    OPENAI_VISION_MODEL,
+    VOICE_MODEL,
+    VOICE_MODEL_VOICE,
+    VOICE_MODEL_SPEED,
+    VISION_MODEL_MAX_TOKENS,
     OPENAI_KEY
 } = require('../config.json');
 
@@ -76,9 +77,9 @@ const OpenAIWrapper = {
     },
     async generateAudioResponse(text) {
         const response = await openai.audio.speech.create({
-            model: GPT_VOICE_MODEL,
-            voice: GPT_VOICE_VOICE,
-            speed: GPT_VOICE_SPEED,
+            model: VOICE_MODEL,
+            voice: VOICE_MODEL_VOICE,
+            speed: VOICE_MODEL_SPEED,
             input: text,
           }).catch((error) => console.error('OpenAI Error:\n', error));
         const buffer = Buffer.from(await response.arrayBuffer());
@@ -86,7 +87,7 @@ const OpenAIWrapper = {
     },
     async generateVisionResponse(imageUrl, text) {
         const response = await openai.chat.completions.create({
-            model: GPT_VISION_MODEL,
+            model: OPENAI_VISION_MODEL,
             messages: [
                 {
                     "role": "user",
@@ -101,17 +102,22 @@ const OpenAIWrapper = {
                     ],
                 }
             ],
-            max_tokens: GPT_VISION_MAX_TOKENS,
+            max_tokens: VISION_MODEL_MAX_TOKENS,
         }).catch((error) => console.error('OpenAI Error:\n', error));
         return response;
     },
-    async generateTextResponse(conversation, tokens, model = GPT_RESPONSE_MODEL) {
-        return await openai.chat.completions.create({
-            temperature: GPT_RESPONSE_TEMPERATURE,
-            model: model,
+    async generateText(conversation, tokens, performance = 'FAST') {
+        let text;
+        const response = await openai.chat.completions.create({
+            temperature: LANGUAGE_MODEL_TEMPERATURE,
+            model: performance === 'POWERFUL' ? OPENAI_LANGUAGE_MODEL_POWERFUL : OPENAI_LANGUAGE_MODEL_FAST,
             messages: conversation,
-            max_tokens: tokens ? tokens : GPT_RESPONSE_MAX_TOKENS,
+            max_tokens: tokens ? tokens : LANGUAGE_MODEL_MAX_TOKENS,
         }).catch((error) => console.error('OpenAI Error:\n', error));
+        if (response.choices[0].message.content) {
+            text = response.choices[0].message.content;
+        }
+        return text;
     },
     async generateEmbedding(text) {
         return await openai.embedding.create({

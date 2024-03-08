@@ -1,24 +1,29 @@
 require('dotenv/config');
 
 const {
-    LOCAL_URL,
-    LOCAL_RESPONSE_TEMPERATURE,
-    LOCAL_RESPONSE_MAX_TOKENS
+    LOCAL_TEXT_MODEL_URL,
+    LANGUAGE_MODEL_TEMPERATURE,
+    LANGUAGE_MODEL_MAX_TOKENS
 } = require('../config.json');
 
 const LocalAIWrapper = {
-    async generateTextResponse(conversation, tokens) {
-        const response = await fetch(LOCAL_URL, {
+    async generateText(conversation, tokens) {
+        let text;
+        const response = await fetch(LOCAL_TEXT_MODEL_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 messages: conversation,
-                temperature: LOCAL_RESPONSE_TEMPERATURE,
-                max_tokens: tokens ? tokens : LOCAL_RESPONSE_MAX_TOKENS,
+                temperature: LANGUAGE_MODEL_TEMPERATURE,
+                max_tokens: tokens ? tokens : LANGUAGE_MODEL_MAX_TOKENS,
                 stream: false
             })
         }).catch(error => console.error('Error:', error));
-        return await response.json();
+        let responseJson = await response.json();
+        if (responseJson.choices[0].message.content) {
+            text = responseJson.choices[0].message.content;
+        }
+        return text;
     }
 };
 

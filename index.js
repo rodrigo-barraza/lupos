@@ -206,7 +206,7 @@ async function processQueue() {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
     
-        let generatedResponse = await AIService.generateResponse(message);
+        let generatedResponse = await AIService.generateText({message});
     
         if (!generatedResponse) {
             message.reply("...");
@@ -218,7 +218,7 @@ async function processQueue() {
             return UtilityLibrary.discordUsername(user);
         }
     
-        const responseMessage = `${generatedResponse.choices[0].message.content.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+        const responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
 
         //  replace <@!1234567890> with the user's display name
         const responseMessageAudio = responseMessage.replace(/<@!?\d+>/g, (match) => {

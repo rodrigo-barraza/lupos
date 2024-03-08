@@ -1,21 +1,28 @@
 require('dotenv/config');
 
 const {
-    LOCAL_URL,
-    LOCAL_RESPONSE_TEMPERATURE,
-    LOCAL_RESPONSE_MAX_TOKENS
+    BARK_VOICE_MODEL_API_URL,
 } = require('../config.json');
 
 const BarkAIWrapper = {
     async generateAudio(text) {
-        const response = await fetch('http://localhost:5000/audio', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                text: text,
-            })
-        }).catch(error => console.error('Error:', error));
-        return await response.json();
+        try {
+            const response = await fetch(BARK_VOICE_MODEL_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                })
+            });
+            if (!response.ok) {
+                console.log('Error:', response.status); 
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            return null;
+        }
     }
 };
 
