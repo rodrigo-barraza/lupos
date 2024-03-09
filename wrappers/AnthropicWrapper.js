@@ -46,6 +46,10 @@ const AnthrophicWrapper = {
             return acc;
         }, []);
 
+        if (mergedData[0].role === "assistant") {
+            mergedData.shift();
+        }
+
         const response = await anthropic.messages.create({
             system: systemMessage,
             temperature: LANGUAGE_MODEL_TEMPERATURE,

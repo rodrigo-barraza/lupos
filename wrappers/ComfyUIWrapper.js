@@ -242,7 +242,7 @@ const prompt = {
   },
   "34": {
     "inputs": {
-      "width": 1280,
+      "width": 1024,
       "height": 1024,
       "compression": 38,
       "batch_size": 1
