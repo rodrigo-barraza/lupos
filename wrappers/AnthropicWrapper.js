@@ -26,15 +26,9 @@ const AnthrophicWrapper = {
         });
 
         const mergedData = conversation.reduce((acc, cur, index, array) => {
-            if (cur.role === "assistant") {
-              acc.push(cur);
-              return acc;
-            }
-            if (acc.length && acc[acc.length - 1].role === "assistant") {
-              acc.push(cur);
-            } else {
-              if (acc.length && acc[acc.length - 1].role === "user") {
-                if (index === array.length - 1 || array[index + 1].role !== "user") { // Check if this is the last `cur.content` to be added
+            if (cur.role === "user" || cur.role === "assistant") {
+              if (acc.length && acc[acc.length - 1].role === cur.role) {
+                if (cur.role === "user" && (index === array.length - 1 || array[index + 1].role !== "user")) {
                   acc[acc.length - 1].content += `# Directly reply to this message:\n\n${cur.content}\n\n`;
                 } else {
                   acc[acc.length - 1].content += `${cur.content}\n\n`;
@@ -44,7 +38,7 @@ const AnthrophicWrapper = {
               }
             }
             return acc;
-        }, []);
+          }, []);
 
         if (mergedData[0].role === "assistant") {
             mergedData.shift();
