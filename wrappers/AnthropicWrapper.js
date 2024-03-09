@@ -25,7 +25,7 @@ const AnthrophicWrapper = {
             return message;
         });
 
-        const mergedData = conversation.reduce((acc, cur) => {
+        const mergedData = conversation.reduce((acc, cur, index, array) => {
             if (cur.role === "assistant") {
               acc.push(cur);
               return acc;
@@ -34,13 +34,17 @@ const AnthrophicWrapper = {
               acc.push(cur);
             } else {
               if (acc.length && acc[acc.length - 1].role === "user") {
-                acc[acc.length - 1].content += `${cur.content}\n\n`;
+                if (index === array.length - 1 || array[index + 1].role !== "user") { // Check if this is the last `cur.content` to be added
+                  acc[acc.length - 1].content += `# Directly reply to this message:\n\n${cur.content}\n\n`;
+                } else {
+                  acc[acc.length - 1].content += `${cur.content}\n\n`;
+                }
               } else {
                 acc.push(cur);
               }
             }
             return acc;
-          }, []);
+        }, []);
 
         const response = await anthropic.messages.create({
             system: systemMessage,
