@@ -25,13 +25,28 @@ const AnthrophicWrapper = {
             return message;
         });
 
-        const last = conversation[conversation.length - 1];
+        const mergedData = conversation.reduce((acc, cur) => {
+            if (cur.role === "assistant") {
+              acc.push(cur);
+              return acc;
+            }
+            if (acc.length && acc[acc.length - 1].role === "assistant") {
+              acc.push(cur);
+            } else {
+              if (acc.length && acc[acc.length - 1].role === "user") {
+                acc[acc.length - 1].content += `${cur.content}\n\n`;
+              } else {
+                acc.push(cur);
+              }
+            }
+            return acc;
+          }, []);
 
         const response = await anthropic.messages.create({
             system: systemMessage,
             temperature: LANGUAGE_MODEL_TEMPERATURE,
             model: performance === 'POWERFUL' ? ANTHROPIC_LANGUAGE_MODEL_POWERFUL : ANTHROPIC_LANGUAGE_MODEL_FAST,
-            messages: [last],
+            messages: mergedData,
             max_tokens: tokens ? tokens : LANGUAGE_MODEL_MAX_TOKENS,
         }).catch((error) => console.error('OpenAI Error:\n', error));
 
