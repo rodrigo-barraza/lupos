@@ -1,4 +1,53 @@
+const colors = [
+    'black',
+    'red',
+    'green',
+    'yellow',
+    'blue',
+    'magenta',
+    'cyan',
+    'white',
+    'gray',
+    'pink',
+    'teal',
+    'canary',
+    'azure',
+    'fuchsia',
+    'aqua',
+    'snow',
+]
+
 const UtilityLibrary = {
+    consoleInfo(messages) {
+        const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']; // Define more as needed
+        const resetStyle = "\x1b[0m";
+        
+        const formattedMessages = messages.map(([message, { bold, faint, italic, underline, slowBlink, rapidBlink, crossedOut, doubleUnderline, superscript, subscript, color } = {}]) => {
+            const colorIndex = color && colorCodes.includes(color.toLowerCase()) ? colorCodes.indexOf(color.toLowerCase()) + 30 : '';
+            const colorCode = color ? `;${colorIndex}` : '';
+            const styleCodes = [
+                bold ? '1' : '',
+                faint ? '2' : '',
+                italic ? '3' : '',
+                underline ? '4' : '',
+                slowBlink ? '5' : '',
+                rapidBlink ? '6' : '',
+                crossedOut ? '9' : '',
+                doubleUnderline ? '21' : '',
+                superscript ? '73' : '',
+                subscript ? '74' : '',
+            ].filter(code => code).join(';');
+            const style = `\x1b[${styleCodes}${colorCode}m`;
+    
+            if (typeof message === 'object') {
+                return [style, message, resetStyle];
+            } else {
+                return `${style}${message}${resetStyle}`;
+            }
+        });
+    
+        console.info(...formattedMessages.flat());
+    },
     capitalize(string) {
         if (string) {
             return string.charAt(0).toUpperCase() + string.slice(1);

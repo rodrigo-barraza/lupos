@@ -5,7 +5,7 @@ const {
 } = require('../config.json');
 
 const BarkAIWrapper = {
-    async generateAudio(text) {
+    async generateVoice(text) {
         try {
             const response = await fetch(BARK_VOICE_MODEL_API_URL, {
                 method: 'POST',

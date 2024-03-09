@@ -75,7 +75,7 @@ const OpenAIWrapper = {
         }
 
     },
-    async generateAudioResponse(text) {
+    async generateVoiceResponse(text) {
         const response = await openai.audio.speech.create({
             model: VOICE_MODEL,
             voice: VOICE_MODEL_VOICE,

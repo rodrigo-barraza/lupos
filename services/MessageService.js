@@ -16,11 +16,8 @@ const MessageService = {
                 if (roles) {
                     generatedMessage += `${capitalizedUsername}'s character traits and roles: ${roles}.\n\n`;
                 }
-                console.log(`📝 Replying in ${message.guild.name}'s ${message.channel.name} to ${username}(${userMention})`);
-            } else {
-                console.log(`📝 Replying in a direct message to ${username}(${userMention})`)
             }
-            
+
             generatedMessage += `Reply by mentioning ${capitalizedUsername}'s tag.\n\n`;
             return generatedMessage;
             
@@ -30,7 +27,7 @@ const MessageService = {
         if (message.guild) {
             let text = `## Secondary Participants Names and their Tags\n\n`;
             text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names, tags and traits/roles:\n\n`;
-            let log = `💬 Conversation participant usernames and their respective tags: `;
+            let log = `║ 📣 Participants: `;
             const uniqueUsernames = [];
             const uniqueUserMentions = [];
 
@@ -41,7 +38,6 @@ const MessageService = {
                 const userMention = UtilityLibrary.discordUserMention(recentMessage);
 
                 let username = UtilityLibrary.discordUsername(recentMessage.author);
-                let userTag = '';
 
                 uniqueUsernames.push(username);
 
@@ -49,14 +45,15 @@ const MessageService = {
                     uniqueUserMentions.indexOf(userMention) === -1 && userMention !== botMention) {
                         let member = message.guild.members.cache.get(recentMessage.author.id);
                         let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
-                        userTag = userMention;
                         text += `${username} (${userMention}) has these traits and roles: ${roles}\n\n`;
-                        log += `${username}(${recentMessage.author.id}).`;
+                        log += `${username}(${recentMessage.author.id}) `;
+                        uniqueUserMentions.push(userMention);
                 }
-                uniqueUserMentions.push(userTag);
             })
-            console.log(log)
-            return text;
+            if (uniqueUserMentions.length) {
+                console.info(log)
+                return text;
+            }
         }
     },
     generateServerKnowledge(message) {

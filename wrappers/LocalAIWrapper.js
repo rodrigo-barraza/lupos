@@ -1,7 +1,7 @@
 require('dotenv/config');
 
 const {
-    LOCAL_TEXT_MODEL_URL,
+    LOCAL_LANGUAGE_MODEL_API_URL,
     LANGUAGE_MODEL_TEMPERATURE,
     LANGUAGE_MODEL_MAX_TOKENS
 } = require('../config.json');
@@ -9,7 +9,7 @@ const {
 const LocalAIWrapper = {
     async generateText(conversation, tokens) {
         let text;
-        const response = await fetch(LOCAL_TEXT_MODEL_URL, {
+        const response = await fetch(LOCAL_LANGUAGE_MODEL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -6,10 +6,11 @@ const {
     GUILD_ID_LONEWOLF,
     ROLE_ID_BLABBERMOUTH,
     GENERATE_IMAGE,
-    GENERATE_AUDIO,
+    GENERATE_VOICE,
     BLABBERMOUTH,
     DETECT_AND_REACT,
     DISCORD_TOKEN,
+    BARK_VOICE_FOLDER,
 } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -175,11 +176,11 @@ function displayAllGuilds() {
     client.guilds.cache.forEach(guild => {
         connectedGuildsText += `${guild.name}(${guild.id}) `;
     });
-    console.log(connectedGuildsText);
+    UtilityLibrary.consoleInfo([[connectedGuildsText, {}]]);
 }
 
 client.on("ready", () => {
-    console.log(`👌 Successfully Logged in as ${client.user.tag}!`);
+    UtilityLibrary.consoleInfo([[`👌 Successfully Logged in as ${client.user.tag}!`, { bold: true }]]);
     AlcoholService.instantiate();
     MoodService.instantiate();
     displayAllGuilds()
@@ -205,13 +206,29 @@ async function processQueue() {
         const message = queue.shift();
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-    
+
+        const userMention = UtilityLibrary.discordUserMention(message);
+        const username = UtilityLibrary.discordUsername(message.author || message.member);
+        
+        UtilityLibrary.consoleInfo([[`╔═══════════════════════════════════░▒▓ +MESSAGE+ ▓▒░═══════════════════════════════════╗`, { rapidBlink: true, color: 'yellow' }]]);
+        console.info(`║ 💬 Replying to: ${username}(${userMention})`);
+        if (message.guild) {
+            console.info(`║ 🌐 Server: ${message.guild.name}`)
+            console.info(`║ 📡 Channel: #${message.channel.name}`);
+        }
+
         let generatedResponse = await AIService.generateText({message});
     
         if (!generatedResponse) {
+            UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'red' }]]);
             message.reply("...");
             return;
         }
+        
+        // UtilityLibrary.consoleInfo(`║ 📑 Text: ${{text: generatedResponse}}`, { });
+
+        UtilityLibrary.consoleInfo([[`║ 📑 Text: `, { }], [{ response: generatedResponse }, { }]]);
+
 
         function findUserById(id) {
             const user = client.users.cache.get(id);
@@ -230,7 +247,7 @@ async function processQueue() {
         let generatedAudio;
 
         if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_AUDIO) { generatedAudio = await AIService.generateAudio(message, responseMessageAudio) }
+        if (GENERATE_VOICE) { generatedAudio = await AIService.generateVoice(message, responseMessageAudio) }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
@@ -240,18 +257,15 @@ async function processQueue() {
             let files = [];
             if (generatedAudio && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 // files.push({ attachment: Buffer.from(generatedAudio, 'base64'), name: 'lupos.mp3' });
-                files.push({ attachment: await fs.promises.readFile(`${chatterPath}/${generatedAudio}`), name: 'lupos.mp3' });
+                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudio}`), name: 'lupos.mp3' });
             }
             if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
                 files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
             }
             messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
-            // send message instead of reply
-            // find current channel its in?
-            // get the channel id?
-            // and use this id to send a message?
         }
+        UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'green' }]]);
     }
     MoodService.instantiate();
     processingQueue = false;

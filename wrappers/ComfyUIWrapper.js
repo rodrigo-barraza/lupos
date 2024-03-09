@@ -317,7 +317,7 @@ function createImagePromptFromText(text) {
     return fullPrompt
 }
 
-const ComfyUILibrary = {
+const ComfyUIWrapper = {
     async generateImage(text) {
         try {
             const prompt = createImagePromptFromText(text);
@@ -331,4 +331,4 @@ const ComfyUILibrary = {
 };
 
 
-module.exports = ComfyUILibrary;
+module.exports = ComfyUIWrapper;

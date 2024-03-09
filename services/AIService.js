@@ -3,7 +3,7 @@ const AlcoholService = require('../services/AlcoholService.js');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const MessageService = require('../services/MessageService.js');
 const MoodService = require('../services/MoodService.js');
-const ComfyUILibrary = require('../libraries/ComfyUILibrary.js');
+const ComfyUIWrapper = require('../wrappers/ComfyUIWrapper.js');
 const DiscordWrapper = require('../wrappers/DiscordWrapper.js');
 const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
@@ -32,54 +32,60 @@ async function generateText({ conversation, type = LANGUAGE_MODEL_TYPE, performa
 }
 
 async function generateImage(text) {
-    const image = await ComfyUILibrary.generateImage(text);
+    const image = await ComfyUIWrapper.generateImage(text);
     return image;
 }
 
-async function generateAudio(text) {
-    // const audio = await OpenAIWrapper.generateAudioResponse(text);
-    const audio = await BarkAIWrapper.generateAudio(text);
-    return audio.file_name;
+async function generateVoice(text) {
+    let filename;
+    if (text) {
+        // const audio = await OpenAIWrapper.generateVoiceResponse(text);
+        const audio = await BarkAIWrapper.generateVoice(text);
+        if (audio.file_name) {
+            filename = audio.file_name;
+        }
+    }
+    return filename;
 }
 
 async function generateUsersSummary(client, message, recent100Messages) {
-    // const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
+    const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
 
-    // const arrayOfUsers = uniqueUsers.map((user) => {
-    //     if (user.author.id === client.user.id || user.author.id === message.author.id) return;
-    //     const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
-    //     const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
-    //     let conversation = [
-    //         {
-    //             role: 'system',
-    //             content: `
-    //                 You are an expert at giving detailed summaries of what is said to you.
-    //                 You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
-    //                 You will describe the messages that are sent to you as detailed and creative as possible.
-    //                 The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
-    //                 Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
-    //             `
-    //         },
-    //         {
-    //             role: 'user',
-    //             name: UtilityLibrary.getUsernameNoSpaces(message),
-    //             content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
-    //             ${userMessagesAsText}`,
-    //         }
-    //     ];
-    //     const usersSummary = generateText({ conversation, performance });
-    //     return usersSummary;
-    // }).filter(Boolean);
+    const arrayOfUsers = uniqueUsers.map((user) => {
+        if (user.author.id === client.user.id || user.author.id === message.author.id) return;
+        const userMessages = recent100Messages.filter(msg => msg.author.id === user.author.id);
+        const userMessagesAsText = userMessages.map(msg => msg.content).join('\n\n');
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                    You are an expert at giving detailed summaries of what is said to you.
+                    You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
+                    You will describe the messages that are sent to you as detailed and creative as possible.
+                    The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
+                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: ` Here are the last recent messages by ${DiscordWrapper.getNameFromItem(user)} in this channel, and is what they have been talking about:
+                ${userMessagesAsText}`,
+            }
+        ];
+        const usersSummary = generateText({ conversation, type: 'OPENAI', performance: 'FAST' });
+        return usersSummary;
+    }).filter(Boolean);
 
-    // const allMessages = await Promise.allSettled(arrayOfUsers);
-    // let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
-    // // generateCurrentConversationUsersSummary += '// These people are also in the chat,
-    // allMessages.forEach((result) => {
-    //     if (result.status === 'fulfilled') {
-    //         generateCurrentConversationUsersSummary += result.value + `\n\n`;
-    //     }
-    // });
-    // return generateCurrentConversationUsersSummary;
+    const allMessages = await Promise.allSettled(arrayOfUsers);
+    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
+    // generateCurrentConversationUsersSummary += '// These people are also in the chat,
+    allMessages.forEach((result) => {
+        if (result.status === 'fulfilled') {
+            generateCurrentConversationUsersSummary += result.value + `\n\n`;
+        }
+    });
+    return generateCurrentConversationUsersSummary;
 }
 
 async function generateCurrentUserSummary(client, message, recent100Messages, userMessages) {
@@ -179,7 +185,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             }
         })
 
-        console.log('📜 Conversation:', conversation)
+        console.info('║ 📜 Conversation:', conversation)
         return conversation;
     },
     async generateText({ message, type, performance, tokens }) {
@@ -193,7 +199,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     },
     async generateImage(message, text) {
         try {
-            await ComfyUILibrary.checkWebsocketStatus();
+            await ComfyUIWrapper.checkWebsocketStatus();
             DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
             let conversation = [
                 {
@@ -240,7 +246,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             if (notCapable.toLowerCase() === 'yes') {
                 responseContentText = text ? text : message.content;
             }
-            console.log('🖼️ Image prompt: ', responseContentText);
+            console.info('║ 🖼️ Image prompt: ', responseContentText);
             return await generateImage(responseContentText);
         } catch (error) {
             return;
@@ -248,13 +254,13 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     },
     async generateImageRaw(text) {
         DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
-        console.log('🖼️ Image prompt: ', text);
+        UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: text }, { }]]);
         return await generateImage(text);
     },
-    async generateAudio(message, text) {
+    async generateVoice(message, text) {
         DiscordWrapper.setActivity(`🗣️ Recording for ${DiscordWrapper.getNameFromItem(message)}...`);
-        console.log('🔊 Audio prompt: ', text);
-        const audio = await generateAudio(text);
+        UtilityLibrary.consoleInfo([[`║ 🔊 Audio: `, { }], [{ prompt: text }, { }]]);
+        const audio = await generateVoice(text);
         return audio;
     },
     async generateVision(imageUrl, text) {
@@ -279,7 +285,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             }
         ]
         
-        let response = await generateText({ conversation, type: 'GPT', performance: 'FAST', tokens: 3 });
+        let response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 });
         clearInterval(sendTypingInterval);
         return response;
     },
@@ -304,7 +310,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             }
         ]
         
-        const response = await generateText({ conversation, type: 'GPT', performance: 'FAST', tokens: 3 })
+        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 })
         clearInterval(sendTypingInterval);
         return response;
     },
