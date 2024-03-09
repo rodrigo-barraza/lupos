@@ -246,7 +246,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             if (notCapable.toLowerCase() === 'yes') {
                 responseContentText = text ? text : message.content;
             }
-            console.info('║ 🖼️ Image prompt: ', responseContentText);
+            UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: responseContentText }, { }]]);
             return await generateImage(responseContentText);
         } catch (error) {
             return;
