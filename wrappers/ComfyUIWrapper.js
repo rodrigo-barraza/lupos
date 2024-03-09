@@ -114,7 +114,7 @@ const prompt = {
   "3": {
     "inputs": {
       "seed": 687520558485300,
-      "steps": 30,
+      "steps": 25,
       "cfg": 4,
       "sampler_name": "euler_ancestral",
       "scheduler": "simple",
@@ -242,7 +242,7 @@ const prompt = {
   },
   "34": {
     "inputs": {
-      "width": 1024,
+      "width": 1280,
       "height": 1024,
       "compression": 38,
       "batch_size": 1

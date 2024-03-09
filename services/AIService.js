@@ -296,11 +296,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             {
                 role: 'system',
                 content: `
-                    You are an expert at telling if the message provided is unable to be fulfilled.
-                    If the message is "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar, answer with "yes".
-                    You are an expert at telling if the message is "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar.
-                    You will answer with "no" if the message is not "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", "I'm not capable of that", or anything similar.
-                    Do not type anything else besides "yes" or "no". Only "yes" or "no", nothing else.
+                    You are an expert at determining if a given message indicates an inability to fulfill a request. If the message is similar to "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", or "I'm not capable of that", answer with "yes". Otherwise, answer with "no". Do not type anything else besides "yes" or "no".
                 `
             },
             {
