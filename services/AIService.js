@@ -12,11 +12,11 @@ const AnthrophicWrapper = require('../wrappers/AnthropicWrapper.js');
 
 const {
     LANGUAGE_MODEL_TYPE,
-    OPENAI_LANGUAGE_MODEL_FAST,
     RECENT_MESSAGES_LIMIT,
-    IMAGE_MODEL_TYPE,
+    IMAGE_PROMPT_LANGUAGE_MODEL_TYPE,
     IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS,
     IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE,
+    VOICE_MODEL_TYPE,
 } = require('../config.json');
 
 async function generateText({ conversation, type = LANGUAGE_MODEL_TYPE, performance, tokens }) {
@@ -38,14 +38,19 @@ async function generateImage(text) {
 
 async function generateVoice(text) {
     let filename;
+    let buffer;
     if (text) {
-        // const audio = await OpenAIWrapper.generateVoiceResponse(text);
-        const audio = await BarkAIWrapper.generateVoice(text);
-        if (audio.file_name) {
-            filename = audio.file_name;
+        if (VOICE_MODEL_TYPE === 'OPENAI') {
+            buffer = await OpenAIWrapper.generateVoiceResponse(text);
+        } else if (VOICE_MODEL_TYPE === 'BARKAI') {
+            const voice = await BarkAIWrapper.generateVoice(text);
+            if (voice.file_name) {
+                filename = voice.file_name;
+            }
         }
     }
-    return filename;
+
+    return { filename, buffer };
 }
 
 async function generateUsersSummary(client, message, recent100Messages) {
@@ -240,7 +245,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
                     content: `Make a prompt based on this: ${text ? text : message.content}`,
                 }
             ]
-            const response = await generateText({ conversation, type: IMAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+            const response = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
             let responseContentText = response;
             let notCapable = await AIService.generateNotCapableResponseCheck(message, responseContentText);
             if (notCapable.toLowerCase() === 'yes') {
@@ -260,8 +265,8 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     async generateVoice(message, text) {
         DiscordWrapper.setActivity(`🗣️ Recording for ${DiscordWrapper.getNameFromItem(message)}...`);
         UtilityLibrary.consoleInfo([[`║ 🔊 Audio: `, { }], [{ prompt: text }, { }]]);
-        const audio = await generateVoice(text);
-        return audio;
+        const { filename, buffer } = await generateVoice(text);
+        return { filename, buffer };
     },
     async generateVision(imageUrl, text) {
         return await OpenAIWrapper.generateVisionResponse(imageUrl, text);
