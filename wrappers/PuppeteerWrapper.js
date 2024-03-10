@@ -1,4 +1,5 @@
 require('dotenv/config');
+const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const puppeteer = require('puppeteer');
 
 const PuppeteerWrapper = {
@@ -33,7 +34,7 @@ const PuppeteerWrapper = {
         }
         
         await browser.close();
-        console.log(result);
+        UtilityLibrary.consoleInfo([[`║ 📰 News: `, { }], [result, { }]]);
         return result;
     },
 };
