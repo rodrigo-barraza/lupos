@@ -9,6 +9,7 @@ const OpenAIWrapper = require('../wrappers/OpenAIWrapper.js');
 const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
 const BarkAIWrapper = require('../wrappers/BarkAIWrapper.js');
 const AnthrophicWrapper = require('../wrappers/AnthropicWrapper.js');
+const PuppeteerWrapper = require('../wrappers/PuppeteerWrapper.js');
 
 const {
     LANGUAGE_MODEL_TYPE,
@@ -123,7 +124,13 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
 }
 
 const AIService = {
-    async generateConversationFromRecentMessages(message, client) {
+    async generateConversationFromRecentMessages(message, client, alerts) {
+        let alertsText;
+        if (alerts?.length) {
+            alertsText = `# Latest News to Reference in Responses:\n`;
+            alertsText += alerts.map(alert => `- ${alert.title}\n${alert.description}`).join('\n\n');
+        }
+
         let conversation = [];
         // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
         let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
@@ -147,6 +154,7 @@ const AIService = {
         conversation.push({
             role: 'system',
             content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
+${alertsText}
 ${MessageService.generateDateMessage()}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
@@ -196,7 +204,13 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     async generateText({ message, type, performance, tokens }) {
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
-        const conversation = await AIService.generateConversationFromRecentMessages(message, client);
+        // remove <@123456789> from message content by using regex to replace it by start of <@ and end of >
+        const messageContent = message.content.replace(/<@(\d+)>/g, '');
+        let alerts;
+        if (messageContent) {
+            alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
+        }
+        const conversation = await AIService.generateConversationFromRecentMessages(message, client, alerts);
         return await generateText({ conversation, type, performance, tokens });
     },
     async generateResponseFromCustomConversation(conversation, type = LANGUAGE_MODEL_TYPE, performance = 'POWERFUL', tokens = 360) {
@@ -311,7 +325,30 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             }
         ]
         
-        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 })
+        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
+        clearInterval(sendTypingInterval);
+        return response;
+    },
+    async generateTopicAtHand(message, text) {
+        await message.channel.sendTyping();
+        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+        let conversation = [
+            {
+                role: 'system',
+                content: `
+                # Role
+                Return the topic that is being talked about.
+                Do not explain, just return the topic that is mentioned as concisely as possible, while being accurate.
+                `
+            },
+            {
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(message),
+                content: text,
+            }
+        ]
+        
+        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
         clearInterval(sendTypingInterval);
         return response;
     },
