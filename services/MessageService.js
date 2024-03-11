@@ -10,15 +10,15 @@ const MessageService = {
         if (username && userMention) {
             const capitalizedUsername = UtilityLibrary.capitalize(username);
             const roles = UtilityLibrary.discordRoles(message.member);
-            let generatedMessage = `## Primary Participant Conversation\n\n`;
+            let generatedMessage = `## Primary Participant Conversation\n`;
             if (message.guild) {
-                generatedMessage += `You are replying directly to ${capitalizedUsername} with tag ${userMention}.\n\n`;
+                generatedMessage += `- You are replying directly to ${capitalizedUsername} with tag ${userMention}.\n`;
                 if (roles) {
-                    generatedMessage += `${capitalizedUsername}'s character traits and roles: ${roles}.\n\n`;
+                    generatedMessage += `- ${capitalizedUsername}'s character traits and roles: ${roles}.\n`;
                 }
             }
 
-            generatedMessage += `Reply by mentioning ${capitalizedUsername}'s tag.\n\n`;
+            generatedMessage += `- Reply by mentioning ${capitalizedUsername}'s tag.\n\n`;
             return generatedMessage;
             
         }
@@ -59,20 +59,20 @@ const MessageService = {
     generateServerKnowledge(message) {
         let text = '';
         if (message.guild) {
-            text += `# Server Information\n\n`
-            text += `You are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${UtilityLibrary.discordBotsAmount(message)} bots.\n\n`
-            text += `You are in the channel called: ${message.channel.name}.\n\n`;
+            text += `# Server Information\n`
+            text += `- You are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${UtilityLibrary.discordBotsAmount(message)} bots.\n`
+            text += `- You are in the channel called: ${message.channel.name}.\n\n`;
         }
         if (message.channel.topic) {
-            text += `## Channel Information\n\n`
-            text += `The channel topic is: ${message.channel.topic}\n\n`
+            text += `## Channel Information\n`
+            text += `- The channel topic is: ${message.channel.topic}\n\n`
         }
-        text += `## How to tag someone\n\n`
-        text += `To mention, tag or reply to someone, you do it by typing "<@", followed by the tag number associated to them, and finish with ">".\n\n`
+        text += `## How to tag someone\n`
+        text += `- To mention, tag or reply to someone, you do it by typing "<@", followed by the tag number associated to them, and finish with ">".\n\n`
         return text;
     },
     generateDateMessage(){
-        return `# Date and Time\n\nThe current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.\n\n`;
+        return `# Date and Time\n- The current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.\n\n`;
     },
     generateServerSpecificMessage(guildId) {
         if (guildId) {

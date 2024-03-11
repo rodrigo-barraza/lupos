@@ -1,8 +1,80 @@
 require('dotenv/config');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const puppeteer = require('puppeteer');
+const xml2js = require('xml2js');
 
 const PuppeteerWrapper = {
+    async scrapeRSSGoogleTrends() {
+        const url = 'https://trends.google.com/trends/trendingsearches/daily/rss?geo=US';
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle0' });
+    
+        // Extract XML content from the page
+        let xmlContent = await page.evaluate(() => document.body.innerText);
+    
+        await browser.close();
+
+        xmlContent = xmlContent.substring(xmlContent.indexOf('<rss'));
+    
+        // Parse XML content to JSON
+        const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+        const result = await parser.parseStringPromise(xmlContent);
+    
+        let output = "# Currently Trending\n";
+    
+        const items = result.rss.channel.item;
+        items.forEach((item) => {
+            const title = item.title;
+            const description = item.description || 'No description';
+            const pubDate = item.pubDate;
+    
+            output += `## Title: ${title}\n`;
+            output += `- Description: ${description}\n`;
+            output += `- Date: ${pubDate}\n`;
+            output += `### Recent News\n`;
+    
+            const newsItems = Array.isArray(item['ht:news_item']) ? item['ht:news_item'] : [item['ht:news_item']];
+            newsItems.forEach((newsItem) => {
+                const newsItemTitle = newsItem['ht:news_item_title'];
+                const newsItemSnippet = newsItem['ht:news_item_snippet'];
+                const newsItemUrl = newsItem['ht:news_item_url'];
+                const newsItemSource = newsItem['ht:news_item_source'];
+    
+                output += `- Title: ${newsItemTitle}\n`;
+                output += `- Snippet: ${newsItemSnippet}\n`;
+                output += `- URL: ${newsItemUrl}\n`;
+                output += `- Source: ${newsItemSource}\n\n`;
+            });
+        });
+    
+        return output;
+    },
+    async scrapeURL(url) {
+        let result;
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url);
+
+        try {
+            await page.waitForSelector('title', {timeout: 5000});
+            await page.waitForSelector('meta[name="description"]', {timeout: 5000});
+            await page.waitForSelector('meta[name="keywords"]', {timeout: 5000});
+            result = await page.evaluate(() => {
+                const title = document.querySelector('title').textContent.trim();
+                const description = document.querySelector('meta[name="description"]').getAttribute('content');
+                const keywords = document.querySelector('meta[name="keywords"]').getAttribute('content');
+                return { title, description, keywords };
+            });
+        } catch(error) {
+            console.error('Puppeteer Error:\n', error);
+            result = null;
+        }
+        
+        await browser.close();
+        UtilityLibrary.consoleInfo([[`║ 🌐 Scraping URL: `, { }], [result, { }]]);
+        return result;
+    },
     async scrapeGoogleAlerts(searchText) {
         let result;
         const browser = await puppeteer.launch({ headless: true });
@@ -23,7 +95,8 @@ const PuppeteerWrapper = {
                     return Array.from(listItems, element => {
                         const title = element.querySelector('h4 a').textContent.trim();
                         const description = element.querySelector('div span').textContent.trim();
-                        return { title, description };
+                        const url = element.querySelector('h4 a').getAttribute('href');
+                        return { title, description, url };
                     });
                 }
             });

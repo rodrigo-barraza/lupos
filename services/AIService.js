@@ -123,38 +123,60 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
     return generateCurrentConversationUserSummary;
 }
 
-const AIService = {
-    async generateConversationFromRecentMessages(message, client, alerts) {
-        let alertsText;
-        if (alerts?.length) {
-            alertsText = `# Latest News to Reference in Responses:\n`;
-            alertsText += alerts.map(alert => `- ${alert.title}\n${alert.description}`).join('\n\n');
-        }
+async function generateConversationFromRecentMessages(message, client, alerts, trends) {
+    let newsSummary = '';
+    if (alerts?.length) {
+        let alertsText = `# Latest News Articles:\n\n`;
+        alertsText += alerts.map(alert => `## ${alert.title}\n- Description: ${alert.description}\n- Source: ${alert.url}\n\n`).join('');
+        newsSummary = await generateNewsSummary(message, alertsText);
+        newsSummary = `# Latest News Articles:\n${newsSummary}`;
+    }
+    
+        
+    const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
+    let scrapedURL;
+    if (urls?.length) {
+        scrapedURL = await PuppeteerWrapper.scrapeURL(urls[0]);
+    }
 
-        let conversation = [];
-        // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
-        let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
+    let conversation = [];
+    // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
+    let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
 
-        let recent100MessagesArray = recent100Messages.map((msg) => msg);
+    let recent100MessagesArray = recent100Messages.map((msg) => msg);
 
-        const authorId = message.author.id
+    const authorId = message.author.id
 
-        const lastAuthorIndex = recent100MessagesArray.map(msg => msg.author.id).lastIndexOf(authorId);
-        const filteredRecent100Messages = recent100MessagesArray.slice(0, lastAuthorIndex + 1);
-        const recentMessages = filteredRecent100Messages.slice(-RECENT_MESSAGES_LIMIT);
+    const lastAuthorIndex = recent100MessagesArray.map(msg => msg.author.id).lastIndexOf(authorId);
+    const filteredRecent100Messages = recent100MessagesArray.slice(0, lastAuthorIndex + 1);
+    const recentMessages = filteredRecent100Messages.slice(-RECENT_MESSAGES_LIMIT);
 
-        const userMessages = recent100Messages.filter(msg => msg.author.id === authorId);
+    const userMessages = recent100Messages.filter(msg => msg.author.id === authorId);
 
-        const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
-        const generateUsersSummaryy = await generateUsersSummary(client, message, filteredRecent100Messages);
-        const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, filteredRecent100Messages);
+    const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
+    const generateUsersSummaryy = await generateUsersSummary(client, message, filteredRecent100Messages);
+    const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, filteredRecent100Messages);
 
-        const roles = UtilityLibrary.discordRoles(message.member);
+    const roles = UtilityLibrary.discordRoles(message.member);
 
-        conversation.push({
-            role: 'system',
-            content: `# General Information\n\nYour name is ${client.user.displayName}.\n\nYour id is ${client.user.id}.\n\nYour traits are ${roles}.\n\n
-${alertsText}
+    conversation.push({
+        role: 'system',
+        content: `
+# General Information
+- Name: ${client.user.displayName}.
+- ID: ${client.user.id}.
+- Traits: ${roles}.
+
+# URL Information
+${scrapedURL ? `## ${urls[0]}.` : ''}
+${scrapedURL ? `- Title: ${scrapedURL.title}.` : ''}
+${scrapedURL ? `- Description: ${scrapedURL.description}.` : ''}
+${scrapedURL ? `- Keywords: ${scrapedURL.keywords}.` : ''}
+
+${newsSummary}
+
+${trends}
+
 ${MessageService.generateDateMessage()}
 ${MessageService.generateServerKnowledge(message)}
 ${MessageService.generateCurrentConversationUser(message)}
@@ -165,55 +187,126 @@ ${MessageService.generateAssistantMessage()}
 ${MessageService.generateBackstoryMessage(message.guild?.id)}
 ${MessageService.generatePersonalityMessage()}
 ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
-        });
+    });
 
-        // conversation.push({
-        //     role: 'system',
-        //     content: `
-        //         ${AlcoholService.generateAlcoholSystemPrompt()}\n
-        //         ${MessageService.generateCurrentConversationUser(message)}\n
-        //         ${MessageService.generateAssistantMessage()}\n
-        //         ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
-        //         ${MessageService.generatePersonalityMessage()}\n
-        //         ${await MoodService.generateMoodMessage(message, client)}\n
-        //         ${MessageService.generateDateMessage(message)}\n
-        //         ${MessageService.generateCurrentConversationUsers(client, message, recentMessages)}\n
-        //         ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
-        //     `
-        // });
+    recentMessages.forEach((msg) => {
+        if (msg.author.id === client.user.id) {
+            conversation.push({
+                role: 'assistant',
+                name: UtilityLibrary.getUsernameNoSpaces(msg),
+                content: msg.content,
+            });
+        } else {
+            conversation.push({
+                role: 'user',
+                name: UtilityLibrary.getUsernameNoSpaces(msg),
+                content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username)} said ${msg.content}.`,
+            })
+        }
+    })
 
-        recentMessages.forEach((msg) => {
-            if (msg.author.id === client.user.id) {
-                conversation.push({
-                    role: 'assistant',
-                    name: UtilityLibrary.getUsernameNoSpaces(msg),
-                    content: msg.content,
-                });
-            } else {
-                conversation.push({
-                    role: 'user',
-                    name: UtilityLibrary.getUsernameNoSpaces(msg),
-                    content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username)} said ${msg.content}.`,
-                })
-            }
-        })
+    console.info('║ 📜 Conversation:', conversation)
+    return conversation;
+}
 
-        console.info('║ 📜 Conversation:', conversation)
-        return conversation;
-    },
+async function generateNewsSummary(message, text) {
+    const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    let conversation = [
+        {
+            role: 'system',
+            content: `Summarize the following news articles.
+            For any repeated or related news, combine them, while keeping sources.
+            
+            Output format:
+            ## {article title}
+            - Description: {article name}
+            ### Sources:
+            - {article source1}
+            -  {article source2}
+            - ...`
+        },
+        {
+            role: 'user',
+            name: UtilityLibrary.getUsernameNoSpaces(message),
+            content: text,
+        }
+    ]
+    
+    const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 1200 })
+    // UtilityLibrary.consoleInfo([[`║ 💡 News: `, { }], [response, { }]]);
+    clearInterval(sendTypingInterval);
+    return response;
+}
+
+async function generateTopicAtHand(message, text) {
+    const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    let conversation = [
+        {
+            role: 'system',
+            content: `
+            # Role
+            Return the topic that is being talked about.
+            Do not explain, just return the topic that is mentioned as concisely as possible, while being accurate.
+            `
+        },
+        {
+            role: 'user',
+            name: UtilityLibrary.getUsernameNoSpaces(message),
+            content: text,
+        }
+    ]
+    
+    const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
+    UtilityLibrary.consoleInfo([[`║ 💡 Topic: `, { }], [response, { }]]);
+    clearInterval(sendTypingInterval);
+    return response;
+}
+
+async function generateNotCapableResponseCheck(message, text) {
+    await message.channel.sendTyping();
+    const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
+    let conversation = [
+        {
+            role: 'system',
+            content: `
+                You are an expert at determining if a given message indicates an inability to fulfill a request. If the message is similar to "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", or "I'm not capable of that", answer with "yes". Otherwise, answer with "no". Do not type anything else besides "yes" or "no".
+            `
+        },
+        {
+            role: 'user',
+            name: UtilityLibrary.getUsernameNoSpaces(message),
+            content: text,
+        }
+    ]
+    
+    const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
+    clearInterval(sendTypingInterval);
+    return response;
+}
+
+// async function generateResponseFromCustomConversation(conversation, type = LANGUAGE_MODEL_TYPE, performance = 'POWERFUL', tokens = 360) {
+//     return await generateText({ conversation, type, performance, tokens });
+// }
+
+// async function generateImageRaw(text) {
+//     DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
+//     UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: text }, { }]]);
+//     return await generateImage(text);
+// }
+
+const AIService = {
     async generateText({ message, type, performance, tokens }) {
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
-        // remove <@123456789> from message content by using regex to replace it by start of <@ and end of >
-        const messageContent = await AIService.generateTopicAtHand(message, message.content);
+
+        const messageContent = await generateTopicAtHand(message, message.content);
         let alerts;
         if (messageContent) {
             alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
         }
-        const conversation = await AIService.generateConversationFromRecentMessages(message, client, alerts);
-        return await generateText({ conversation, type, performance, tokens });
-    },
-    async generateResponseFromCustomConversation(conversation, type = LANGUAGE_MODEL_TYPE, performance = 'POWERFUL', tokens = 360) {
+        // const trends = await PuppeteerWrapper.scrapeRSSGoogleTrends();
+        const trends = '';
+        const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends);
         return await generateText({ conversation, type, performance, tokens });
     },
     async generateImage(message, text) {
@@ -261,7 +354,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             ]
             const response = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
             let responseContentText = response;
-            let notCapable = await AIService.generateNotCapableResponseCheck(message, responseContentText);
+            let notCapable = await generateNotCapableResponseCheck(message, responseContentText);
             if (notCapable.toLowerCase() === 'yes') {
                 responseContentText = text ? text : message.content;
             }
@@ -270,11 +363,6 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         } catch (error) {
             return;
         }
-    },
-    async generateImageRaw(text) {
-        DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
-        UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: text }, { }]]);
-        return await generateImage(text);
     },
     async generateVoice(message, text) {
         DiscordWrapper.setActivity(`🗣️ Recording for ${DiscordWrapper.getNameFromItem(message)}...`);
@@ -305,50 +393,6 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         ]
         
         let response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 });
-        clearInterval(sendTypingInterval);
-        return response;
-    },
-    async generateNotCapableResponseCheck(message, text) {
-        await message.channel.sendTyping();
-        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-        let conversation = [
-            {
-                role: 'system',
-                content: `
-                    You are an expert at determining if a given message indicates an inability to fulfill a request. If the message is similar to "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", or "I'm not capable of that", answer with "yes". Otherwise, answer with "no". Do not type anything else besides "yes" or "no".
-                `
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: text,
-            }
-        ]
-        
-        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
-        clearInterval(sendTypingInterval);
-        return response;
-    },
-    async generateTopicAtHand(message, text) {
-        const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
-        let conversation = [
-            {
-                role: 'system',
-                content: `
-                # Role
-                Return the topic that is being talked about.
-                Do not explain, just return the topic that is mentioned as concisely as possible, while being accurate.
-                `
-            },
-            {
-                role: 'user',
-                name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: text,
-            }
-        ]
-        
-        const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
-        UtilityLibrary.consoleInfo([[`║ 💡 Topic: `, { }], [response, { }]]);
         clearInterval(sendTypingInterval);
         return response;
     },
