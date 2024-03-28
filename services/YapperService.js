@@ -32,7 +32,7 @@ const YapperService = {
             systemContent += `- ${yapper.displayName} with ${yapper.posts} recent yaps\n`;
         }
         const userContent = `Who are the current top 5 yappers in order?`;
-        return await AIService.generateResponseIsolated(systemContent, userContent, interaction);
+        return await AIService.generateTextFromSystemUserMessages(systemContent, userContent, interaction);
     }
 }
 

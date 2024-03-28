@@ -2,8 +2,77 @@ require('dotenv/config');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
 const puppeteer = require('puppeteer');
 const xml2js = require('xml2js');
+const AIService = require('../services/AIService.js');
 
 const PuppeteerWrapper = {
+    async scrapeRSS(url) {
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle0' });
+
+        let xmlContent = await page.evaluate(() => document.body.innerText);
+    
+        await browser.close();
+
+        xmlContent = xmlContent.substring(xmlContent.indexOf('<rss'));
+        xmlContent = xmlContent.replace(/&(?!nbsp;)/g, '&amp;');
+    
+        const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+        const result = await parser.parseStringPromise(xmlContent);
+        const items = result.rss.channel.item;
+        return items;
+    },
+    async scrapeRSSGoogleNews(message) {
+        const url = 'https://news.google.com/rss?gl=US&hl=en-US&ceid=US:en';
+        const browser = await puppeteer.launch({ headless: true });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle0' });
+    
+        // Extract XML content from the page
+        let xmlContent = await page.evaluate(() => document.body.innerText);
+    
+        await browser.close();
+
+        xmlContent = xmlContent.substring(xmlContent.indexOf('<rss'));
+
+        xmlContent = xmlContent.replace(/&(?!nbsp;)/g, '&amp;');
+    
+        // Parse XML content to JSON
+        const parser = new xml2js.Parser({ explicitArray: false, mergeAttrs: true });
+        const result = await parser.parseStringPromise(xmlContent);
+    
+        let userMessage = "# Latest News\n";
+    
+        const items = result.rss.channel.item;
+        items.forEach((item) => {
+            const title = item.title;
+            const pubDate = UtilityLibrary.getCurrentDateAndTime(item.pubDate);
+            const minutesAgo = UtilityLibrary.getMinutesAgo(item.pubDate);
+            const link = item.link;
+            const description = item.description || '';
+    
+            userMessage += `## Title: ${title}\n`;
+            userMessage += `- Date: ${pubDate}\n`;
+            userMessage += `- Minutes ago: ${minutesAgo}\n`;
+            userMessage += `- Link: ${link}\n`
+            userMessage += `- Description: ${description}\n`;
+        });
+
+        userMessage += `If any, return the most related news to this: ${message.content}`;
+
+        const systemMessage = `#Task:\n-You return the most related news, and summarize the description without adding more information.\n-If there is no related news, return an empty string.\n\n#Output Format:
+        -## Title: [Title]
+        -Date: [Date]
+        -Minutes ago: [Minutes]
+        -Link: [Link]
+        -Description: [Description]`;
+
+        const conversation = AIService.rawGenerateConversation(systemMessage, userMessage, message)
+
+        AIService.rawGenerateText({conversation, type: 'OPENAI', performance: 'FAST'})
+    
+        return userMessage;
+    },
     async scrapeRSSGoogleTrends() {
         const url = 'https://trends.google.com/trends/trendingsearches/daily/rss?geo=US';
         const browser = await puppeteer.launch({ headless: true });

@@ -1,3 +1,5 @@
+const moment = require('moment');
+
 const colors = [
     'black',
     'red',
@@ -18,6 +20,13 @@ const colors = [
 ]
 
 const UtilityLibrary = {
+    // Date Utilities
+    getCurrentDateAndTime(date) {
+        return moment(date).format('YYYY-MM-DD HH:mm:ss');
+    },
+    getMinutesAgo(date) {
+        return moment(date).fromNow();  
+    },
     consoleInfo(messages) {
         const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']; // Define more as needed
         const resetStyle = "\x1b[0m";

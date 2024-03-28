@@ -167,7 +167,7 @@ async function blabberMouth(client) {
 
     if (!areArraysEqual(oldYappers, mappedYappers)) {
         YapperService.setYappers(mappedYappers);
-        console.log('🗣 Current yappers:', mappedYappers);
+        // console.log('🗣 Current yappers:', mappedYappers);
     }
 }
 

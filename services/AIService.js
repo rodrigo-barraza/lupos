@@ -123,7 +123,7 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
     return generateCurrentConversationUserSummary;
 }
 
-async function generateConversationFromRecentMessages(message, client, alerts, trends) {
+async function generateConversationFromRecentMessages(message, client, alerts, trends, news) {
     let newsSummary = '';
     if (alerts?.length) {
         let alertsText = `# Latest News Articles:\n\n`;
@@ -166,6 +166,8 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
 - Name: ${client.user.displayName}.
 - ID: ${client.user.id}.
 - Traits: ${roles}.
+
+${news}
 
 # URL Information
 ${scrapedURL ? `## ${urls[0]}.` : ''}
@@ -284,6 +286,22 @@ async function generateNotCapableResponseCheck(message, text) {
     return response;
 }
 
+
+function generateConversation(systemMessage, userMessage, message) {
+    let conversation = [
+        {
+            role: 'system',
+            content: systemMessage
+        },
+        {
+            role: 'user',
+            name: UtilityLibrary.getUsernameNoSpaces(message),
+            content: userMessage,
+        }
+    ]
+    return conversation;
+}
+
 // async function generateResponseFromCustomConversation(conversation, type = LANGUAGE_MODEL_TYPE, performance = 'POWERFUL', tokens = 360) {
 //     return await generateText({ conversation, type, performance, tokens });
 // }
@@ -295,6 +313,10 @@ async function generateNotCapableResponseCheck(message, text) {
 // }
 
 const AIService = {
+    async generateTextFromSystemUserMessages(systemMessage, userMessage, message) {
+        const conversation = generateConversation(systemMessage, userMessage, message);
+        return await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 600 });
+    },
     async generateText({ message, type, performance, tokens }) {
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
@@ -306,7 +328,9 @@ const AIService = {
         }
         // const trends = await PuppeteerWrapper.scrapeRSSGoogleTrends();
         const trends = '';
-        const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends);
+        // const news = await AIService.generateGoogleNews(message);
+        const news = '';
+        const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news);
         return await generateText({ conversation, type, performance, tokens });
     },
     async generateImage(message, text) {
@@ -395,6 +419,48 @@ const AIService = {
         let response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 3 });
         clearInterval(sendTypingInterval);
         return response;
+    },
+    async generateGoogleNews(message) {
+        const url = 'https://news.google.com/rss?gl=US&hl=en-US&ceid=US:en';
+        const items = await PuppeteerWrapper.scrapeRSS(url);
+    
+        let userMessage = "# Latest News\n";
+        items.forEach((item) => {
+            const title = item.title;
+            const pubDate = UtilityLibrary.getCurrentDateAndTime(item.pubDate);
+            const minutesAgo = UtilityLibrary.getMinutesAgo(item.pubDate);
+            const link = item.link;
+            const description = item.description || '';
+    
+            userMessage += `## Title: ${title}\n`;
+            userMessage += `- Date: ${pubDate}\n`;
+            userMessage += `- Minutes ago: ${minutesAgo}\n`;
+            userMessage += `- Link: ${link}\n\n`
+
+            // if (description.a?._ && description.a?.href) {
+            //     userMessage += `- Description: ${description.a._}\n`;
+            //     userMessage += `- Link: ${description.a.href}\n`;
+            // }
+
+            // description.ol?.li?.forEach((each => {
+            //     userMessage += `- Description: ${each.a._}\n`;
+            //     userMessage += `- Link: ${each.a.href}\n`;
+            // }))
+
+        });
+        userMessage += `If any, return the most related news to this: ${message.content}`;
+
+        const systemMessage = `#Task:\n-You return the most related news, and summarize the description without adding more information.\n-If there is no related news, return an empty string.\n\n#Output Format:
+        -## Title: [Title]
+        -Date: [Date]
+        -Minutes ago: [Minutes]
+        -Link: [Link]
+        -Description: [Description]
+        
+        #Output:`;
+
+        const conversation = generateConversation(systemMessage, userMessage, message)
+        return await generateText({conversation, type: 'OPENAI', performance: 'FAST'})
     },
 };
 
