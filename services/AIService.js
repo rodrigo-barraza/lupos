@@ -321,11 +321,11 @@ const AIService = {
         const client = DiscordWrapper.getClient();
         DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
 
-        const messageContent = await generateTopicAtHand(message, message.content);
+        // const messageContent = await generateTopicAtHand(message, message.content);
         let alerts;
-        if (messageContent) {
-            alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
-        }
+        // if (messageContent) {
+        //     alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
+        // }
         // const trends = await PuppeteerWrapper.scrapeRSSGoogleTrends();
         const trends = '';
         // const news = await AIService.generateGoogleNews(message);

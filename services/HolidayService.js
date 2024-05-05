@@ -154,7 +154,7 @@ const HolidayService = {
             `;
             userContent = `What is the next upcoming holiday, what dates does it go on, and how many days away is it?`;
         }
-        return await AIService.generateResponseIsolated(systemContent, userContent, interaction);
+        return await AIService.generateTextFromSystemUserMessages(systemContent, userContent, interaction);
     }
 }
 

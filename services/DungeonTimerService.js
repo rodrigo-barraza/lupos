@@ -76,7 +76,7 @@ const DungeonTimerService = {
             userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
         }
         userContent = 'When is the next raid reset date? I cannot wait to throw myself in a raid again. I am so excited!';
-        return await AIService.generateResponseIsolated(systemContent, userContent, interaction);
+        return await AIService.generateTextFromSystemUserMessages(systemContent, userContent, interaction);
     }
 };
 
