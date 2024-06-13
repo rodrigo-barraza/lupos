@@ -241,13 +241,26 @@ async function processQueue() {
             return UtilityLibrary.discordUsername(user);
         }
     
-        const responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+        let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+
+        // replace @here and @everyone with here and everyone
+        responseMessage = responseMessage
+                            .replace(/@here/g, '꩜here')
+                            .replace(/@everyone/g, '꩜everyone')
+                            .replace(/@horde/g, '꩜horde')
+                            .replace(/@alliance/g, '꩜alliance')
+                            .replace(/@alliance/g, '꩜alliance')
+                            .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
+                            .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
+                            .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
+                            .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
 
         //  replace <@!1234567890> with the user's display name
         const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
             const id = match.replace(/<@!?/, '').replace('>', '');
             return findUserById(id);
         }).substring(0, 220);
+
         
         let generatedImage;
         let generatedAudioFile, generatedAudioBuffer;

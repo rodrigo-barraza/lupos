@@ -100,52 +100,22 @@ async function checkWebsocketStatus() {
                 resolve();
             };
             websocket.onerror = (error) => {
-                console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
+                console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
                 reject();
             };
         })
     } catch (error) {
-        console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
+        console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
         throw error;
     }
 }
 
-const prompt = {
-  "3": {
-    "inputs": {
-      "seed": 687520558485300,
-      "steps": 25,
-      "cfg": 4,
-      "sampler_name": "euler_ancestral",
-      "scheduler": "simple",
-      "denoise": 0.9,
-      "model": [
-        "30",
-        0
-      ],
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "34",
-        0
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
-    }
-  },
+const sd3Prompt = {
   "6": {
     "inputs": {
-      "text": "a beautiful detailed image of an evil ghost wolf disguised as a ninja in the midst of Duskwood, its ethereal fur blending seamlessly with the shadows of the dark, enchanted forest. Equipped with ancient, ghostly ninja weaponry and glowing red eyes that pierce through the darkness, the wolf moves with supernatural agility and stealth. Around it, the mist of the night swirls, adding an air of mystique and danger. The scenery captures the ghost ninja wolf as it prepares to strike, embodying both the silent deadliness of a skilled assassin and the menacing aura of an otherworldly predator, under natural lighting, photography.",
+      "text": "donald trump transforming into a car, transformers",
       "clip": [
-        "37",
+        "11",
         0
       ]
     },
@@ -154,134 +124,34 @@ const prompt = {
       "title": "CLIP Text Encode (Prompt)"
     }
   },
-  "7": {
+  "11": {
     "inputs": {
-      "text": "watermark, signature",
-      "clip": [
-        "37",
-        0
-      ]
+      "clip_name1": "clip_g.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "clip_name3": "t5xxl_fp8_e4m3fn.safetensors"
     },
-    "class_type": "CLIPTextEncode",
+    "class_type": "TripleCLIPLoader",
     "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
+      "title": "TripleCLIPLoader"
     }
   },
-  "8": {
+  "13": {
     "inputs": {
-      "samples": [
-        "33",
-        0
-      ],
-      "vae": [
-        "29",
-        0
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
-    }
-  },
-  "29": {
-    "inputs": {
-      "vae_name": "stage_a.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "30": {
-    "inputs": {
-      "unet_name": "stage_c.safetensors"
-    },
-    "class_type": "UNETLoader",
-    "_meta": {
-      "title": "UNETLoader"
-    }
-  },
-  "32": {
-    "inputs": {
-      "unet_name": "stage_b.safetensors"
-    },
-    "class_type": "UNETLoader",
-    "_meta": {
-      "title": "UNETLoader"
-    }
-  },
-  "33": {
-    "inputs": {
-      "seed": 294817137222856,
-      "steps": 10,
-      "cfg": 1.4,
-      "sampler_name": "dpmpp_sde",
-      "scheduler": "sgm_uniform",
-      "denoise": 1,
+      "shift": 3,
       "model": [
-        "32",
-        0
-      ],
-      "positive": [
-        "36",
-        0
-      ],
-      "negative": [
-        "40",
-        0
-      ],
-      "latent_image": [
-        "34",
-        1
-      ]
-    },
-    "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
-    }
-  },
-  "34": {
-    "inputs": {
-      "width": 1280,
-      "height": 1024,
-      "compression": 38,
-      "batch_size": 1
-    },
-    "class_type": "StableCascade_EmptyLatentImage",
-    "_meta": {
-      "title": "StableCascade_EmptyLatentImage"
-    }
-  },
-  "36": {
-    "inputs": {
-      "conditioning": [
-        "40",
-        0
-      ],
-      "stage_c": [
-        "3",
+        "252",
         0
       ]
     },
-    "class_type": "StableCascade_StageB_Conditioning",
+    "class_type": "ModelSamplingSD3",
     "_meta": {
-      "title": "StableCascade_StageB_Conditioning"
+      "title": "ModelSamplingSD3"
     }
   },
-  "37": {
-    "inputs": {
-      "clip_name": "model.safetensors",
-      "type": "stable_cascade"
-    },
-    "class_type": "CLIPLoader",
-    "_meta": {
-      "title": "Load CLIP"
-    }
-  },
-  "40": {
+  "67": {
     "inputs": {
       "conditioning": [
-        "6",
+        "71",
         0
       ]
     },
@@ -290,13 +160,148 @@ const prompt = {
       "title": "ConditioningZeroOut"
     }
   },
-  "43": {
+  "68": {
+    "inputs": {
+      "start": 0.1,
+      "end": 1,
+      "conditioning": [
+        "67",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "69": {
+    "inputs": {
+      "conditioning_1": [
+        "68",
+        0
+      ],
+      "conditioning_2": [
+        "70",
+        0
+      ]
+    },
+    "class_type": "ConditioningCombine",
+    "_meta": {
+      "title": "Conditioning (Combine)"
+    }
+  },
+  "70": {
+    "inputs": {
+      "start": 0,
+      "end": 0.1,
+      "conditioning": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "71": {
+    "inputs": {
+      "text": "bad quality, poor quality, doll, disfigured, jpg, toy, bad anatomy, missing limbs, missing fingers",
+      "clip": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Negative Prompt)"
+    }
+  },
+  "135": {
+    "inputs": {
+      "width": 1080,
+      "height": 1080,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "EmptySD3LatentImage"
+    }
+  },
+  "231": {
+    "inputs": {
+      "samples": [
+        "271",
+        0
+      ],
+      "vae": [
+        "252",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "233": {
+    "inputs": {
+      "images": [
+        "231",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "252": {
+    "inputs": {
+      "ckpt_name": "sd3_medium.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "271": {
+    "inputs": {
+      "seed": 893434258339097,
+      "steps": 40,
+      "cfg": 4.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "sgm_uniform",
+      "denoise": 1,
+      "model": [
+        "13",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "69",
+        0
+      ],
+      "latent_image": [
+        "135",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "273": {
     "inputs": {
       "filename_prefix": "ComfyUI",
       "mode": "lossy",
       "compression": 90,
       "images": [
-        "8",
+        "231",
         0
       ]
     },
@@ -307,11 +312,209 @@ const prompt = {
   }
 }
 
+// const prompt = {
+//   "3": {
+//     "inputs": {
+//       "seed": 687520558485300,
+//       "steps": 25,
+//       "cfg": 4,
+//       "sampler_name": "euler_ancestral",
+//       "scheduler": "simple",
+//       "denoise": 0.9,
+//       "model": [
+//         "30",
+//         0
+//       ],
+//       "positive": [
+//         "6",
+//         0
+//       ],
+//       "negative": [
+//         "7",
+//         0
+//       ],
+//       "latent_image": [
+//         "34",
+//         0
+//       ]
+//     },
+//     "class_type": "KSampler",
+//     "_meta": {
+//       "title": "KSampler"
+//     }
+//   },
+//   "6": {
+//     "inputs": {
+//       "text": "a beautiful detailed image of an evil ghost wolf disguised as a ninja in the midst of Duskwood, its ethereal fur blending seamlessly with the shadows of the dark, enchanted forest. Equipped with ancient, ghostly ninja weaponry and glowing red eyes that pierce through the darkness, the wolf moves with supernatural agility and stealth. Around it, the mist of the night swirls, adding an air of mystique and danger. The scenery captures the ghost ninja wolf as it prepares to strike, embodying both the silent deadliness of a skilled assassin and the menacing aura of an otherworldly predator, under natural lighting, photography.",
+//       "clip": [
+//         "37",
+//         0
+//       ]
+//     },
+//     "class_type": "CLIPTextEncode",
+//     "_meta": {
+//       "title": "CLIP Text Encode (Prompt)"
+//     }
+//   },
+//   "7": {
+//     "inputs": {
+//       "text": "watermark, signature",
+//       "clip": [
+//         "37",
+//         0
+//       ]
+//     },
+//     "class_type": "CLIPTextEncode",
+//     "_meta": {
+//       "title": "CLIP Text Encode (Prompt)"
+//     }
+//   },
+//   "8": {
+//     "inputs": {
+//       "samples": [
+//         "33",
+//         0
+//       ],
+//       "vae": [
+//         "29",
+//         0
+//       ]
+//     },
+//     "class_type": "VAEDecode",
+//     "_meta": {
+//       "title": "VAE Decode"
+//     }
+//   },
+//   "29": {
+//     "inputs": {
+//       "vae_name": "stage_a.safetensors"
+//     },
+//     "class_type": "VAELoader",
+//     "_meta": {
+//       "title": "Load VAE"
+//     }
+//   },
+//   "30": {
+//     "inputs": {
+//       "unet_name": "stage_c.safetensors"
+//     },
+//     "class_type": "UNETLoader",
+//     "_meta": {
+//       "title": "UNETLoader"
+//     }
+//   },
+//   "32": {
+//     "inputs": {
+//       "unet_name": "stage_b.safetensors"
+//     },
+//     "class_type": "UNETLoader",
+//     "_meta": {
+//       "title": "UNETLoader"
+//     }
+//   },
+//   "33": {
+//     "inputs": {
+//       "seed": 294817137222856,
+//       "steps": 10,
+//       "cfg": 1.4,
+//       "sampler_name": "dpmpp_sde",
+//       "scheduler": "sgm_uniform",
+//       "denoise": 1,
+//       "model": [
+//         "32",
+//         0
+//       ],
+//       "positive": [
+//         "36",
+//         0
+//       ],
+//       "negative": [
+//         "40",
+//         0
+//       ],
+//       "latent_image": [
+//         "34",
+//         1
+//       ]
+//     },
+//     "class_type": "KSampler",
+//     "_meta": {
+//       "title": "KSampler"
+//     }
+//   },
+//   "34": {
+//     "inputs": {
+//       "width": 1280,
+//       "height": 1024,
+//       "compression": 38,
+//       "batch_size": 1
+//     },
+//     "class_type": "StableCascade_EmptyLatentImage",
+//     "_meta": {
+//       "title": "StableCascade_EmptyLatentImage"
+//     }
+//   },
+//   "36": {
+//     "inputs": {
+//       "conditioning": [
+//         "40",
+//         0
+//       ],
+//       "stage_c": [
+//         "3",
+//         0
+//       ]
+//     },
+//     "class_type": "StableCascade_StageB_Conditioning",
+//     "_meta": {
+//       "title": "StableCascade_StageB_Conditioning"
+//     }
+//   },
+//   "37": {
+//     "inputs": {
+//       "clip_name": "model.safetensors",
+//       "type": "stable_cascade"
+//     },
+//     "class_type": "CLIPLoader",
+//     "_meta": {
+//       "title": "Load CLIP"
+//     }
+//   },
+//   "40": {
+//     "inputs": {
+//       "conditioning": [
+//         "6",
+//         0
+//       ]
+//     },
+//     "class_type": "ConditioningZeroOut",
+//     "_meta": {
+//       "title": "ConditioningZeroOut"
+//     }
+//   },
+//   "43": {
+//     "inputs": {
+//       "filename_prefix": "ComfyUI",
+//       "mode": "lossy",
+//       "compression": 90,
+//       "images": [
+//         "8",
+//         0
+//       ]
+//     },
+//     "class_type": "Save_as_webp",
+//     "_meta": {
+//       "title": "Save_as_webp"
+//     }
+//   }
+// }
+
 function createImagePromptFromText(text) {
-    const fullPrompt = prompt
+    const fullPrompt = sd3Prompt
     if (text) {
-        fullPrompt["3"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
-        fullPrompt["33"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+        // fullPrompt["3"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+        // fullPrompt["33"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+        fullPrompt["271"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
         fullPrompt["6"]["inputs"]["text"] = text;
     }
     return fullPrompt
@@ -322,9 +525,9 @@ const ComfyUIWrapper = {
         try {
             const prompt = createImagePromptFromText(text);
             const images = await generateImage(prompt);
-            return images[43][0];
+            return images[273][0];
         } catch (error) {
-            return console.error('⚠️ ComfyUI Is Down: Cannot Generate Image');
+            return console.error('⚠️ ComfyUI Workflow Error: Cannot Return Image');
         }
     },
     checkWebsocketStatus: checkWebsocketStatus,

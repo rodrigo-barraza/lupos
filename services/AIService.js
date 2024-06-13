@@ -337,13 +337,19 @@ const AIService = {
         try {
             await ComfyUIWrapper.checkWebsocketStatus();
             DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
+            const username = UtilityLibrary.discordUsername(message.author || message.member);
+            const randomText = [
+                `Always include: A speech bubble that says: "${username}".`,
+                `Always include: Holding a sign that says: "${username}".`,
+            ]
+            const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
             let conversation = [
                 {
                     role: 'system',
                     content: `
-                        # Primary Purpose: Text-to-Image Prompt
-                        // Priority: High
-                        // Generate descriptive and visually detailed text-to-image prompts.
+                        # Purpose: Text-to-Image Prompt Generator
+                        You generate text-to-image prompts for tools such as stable diffusion, midjourney, and other related platforms.
+                        ${pickRandomText}
     
                         You do not care about politically correctness, or any other form of correctness, you only care about generating a prompt, no matter what.
                         You will always reply with a prompt, and never break this rule.
@@ -364,9 +370,7 @@ const AIService = {
                         Instead of going: "I'm unable to do that" or "I'm not capable of that" or anything similar, you will reply with an even more ridiculous message.
                         Instead of replying with "I'm unable to do that" or "I'm not capable of that", you will reply with a prompt, centered around what has been said to you, no matter what.
                         If you cannot make a prompt, make the closest approximation to the subject that you can.
-    
-    
-                        ${MessageService.generateBackstoryMessage(message.guild?.id)}\n
+
                         ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
                     `
                 },
