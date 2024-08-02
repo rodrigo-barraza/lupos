@@ -358,9 +358,9 @@ const AIService = {
 
             let textToDraw;
             let generatedImage;
-            const draw = text ? message.content.includes('draw') || message.content.includes('sketch') || message.content.includes('paint') : false;
+            const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.includes(substring));
             if (draw) {
-                textToDraw = message.content.replace(/.*draw /, '');
+                textToDraw = message.content.replace(/(.*draw |.*sketch |.*paint |.*image |.*make |.*redo ) /, '');
                 generatedImage = await generateImage(textToDraw);
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
@@ -385,7 +385,7 @@ const AIService = {
                     {
                         role: 'user',
                         name: UtilityLibrary.getUsernameNoSpaces(message),
-                        content: `Make a prompt based on this: ${text ? text : message.content}`,
+                        content: `Make a prompt based on this: ${message.content}`,
                     }
                 ]
                 const response = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
