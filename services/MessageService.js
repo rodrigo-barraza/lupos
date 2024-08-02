@@ -27,7 +27,7 @@ const MessageService = {
         if (message.guild) {
             let text = `## Secondary Participants Names and their Tags\n\n`;
             text += `There are also other people in the chat, who are not part of your primary conversation, but are still part of the conversation. Here are their names, tags and traits/roles:\n\n`;
-            let log = `║ 📣 Participants: `;
+            let log = `║ 📣 Other Participants: `;
             const uniqueUsernames = [];
             const uniqueUserMentions = [];
 
@@ -51,7 +51,8 @@ const MessageService = {
                 }
             })
             if (uniqueUserMentions.length) {
-                console.info(log)
+                // UtilityLibrary.consoleInfo([[log, { color: 'red' }]]);
+                // UtilityLibrary.consoleInfo([[`║ 📣 Total Participants: ${uniqueUserMentions.length}`, { color: 'green' }]]);
                 return text;
             }
         }

@@ -1,12 +1,12 @@
 require('dotenv/config');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const xml2js = require('xml2js');
 const AIService = require('../services/AIService.js');
 
 const PuppeteerWrapper = {
     async scrapeRSS(url) {
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({ headless: true, product: "chrome", executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle0' });
 
@@ -146,7 +146,7 @@ const PuppeteerWrapper = {
     },
     async scrapeGoogleAlerts(searchText) {
         let result;
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({ headless: true, product: "chrome", executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.goto('https://www.google.com/alerts');
 

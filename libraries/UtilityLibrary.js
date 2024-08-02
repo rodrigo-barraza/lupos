@@ -1,4 +1,5 @@
 const moment = require('moment');
+const luxon = require('luxon');
 
 const colors = [
     'black',
@@ -20,6 +21,16 @@ const colors = [
 ]
 
 const UtilityLibrary = {
+    async isImageUrl(url) {
+        try {
+            const response = await fetch(url);
+            const contentType = response.headers.get('content-type');
+            return contentType.startsWith('image/');
+        } catch (error) {
+            console.error('Error checking if URL is an image:', error);
+            return false;
+        }
+    },
     // Date Utilities
     getCurrentDateAndTime(date) {
         return moment(date).format('YYYY-MM-DD HH:mm:ss');
@@ -30,6 +41,9 @@ const UtilityLibrary = {
     consoleInfo(messages) {
         const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']; // Define more as needed
         const resetStyle = "\x1b[0m";
+
+        // print current time as 1:23:45PM
+        const currentTime = luxon.DateTime.now().toFormat('h:mm:ss a');
         
         const formattedMessages = messages.map(([message, { bold, faint, italic, underline, slowBlink, rapidBlink, crossedOut, doubleUnderline, superscript, subscript, color } = {}]) => {
             const colorIndex = color && colorCodes.includes(color.toLowerCase()) ? colorCodes.indexOf(color.toLowerCase()) + 30 : '';
@@ -51,7 +65,7 @@ const UtilityLibrary = {
             if (typeof message === 'object') {
                 return [style, message, resetStyle];
             } else {
-                return `${style}${message}${resetStyle}`;
+                return `${currentTime} - ${style}${message}${resetStyle}`;
             }
         });
     

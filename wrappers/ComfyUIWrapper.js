@@ -7,6 +7,8 @@ const {
     COMFY_UI_IMAGE_MODEL_WEBSOCKET_URL,
 } = require('../config.json');
 
+const debugging = false
+
 async function postPrompt(prompt) {
     try {
         const response = await fetch(`${COMFY_UI_IMAGE_MODEL_API_URL}/prompt`, {
@@ -86,8 +88,10 @@ async function generateImage(prompt) {
             };
         });
     } catch (error) {
-        console.error('Error generating image:', error);
-        throw error; // Rethrow or handle as needed.
+        if (debugging) {
+          console.error('Error generating image:', error);
+        }
+        throw error
     }
 }
 
@@ -100,12 +104,16 @@ async function checkWebsocketStatus() {
                 resolve();
             };
             websocket.onerror = (error) => {
-                console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
+                if (debugging) {
+                  console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
+                }
                 reject();
             };
         })
     } catch (error) {
-        console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
+        if (debugging) {
+          console.error('⚠️ ComfyUI Is Down: Cannot Generate Image', error);
+        }
         throw error;
     }
 }
@@ -312,6 +320,169 @@ const sd3Prompt = {
   }
 }
 
+const fluxPrompt = {
+  "5": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "goku and vegeta kissing, making out, hugging, embrace",
+      "clip": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "13",
+        0
+      ],
+      "vae": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "10": {
+    "inputs": {
+      "vae_name": "ae.sft"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "11": {
+    "inputs": {
+      "clip_name1": "t5xxl_fp16.safetensors",
+      "clip_name2": "clip_l.safetensors",
+      "type": "flux"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "12": {
+    "inputs": {
+      "unet_name": "flux1-dev.sft",
+      "weight_dtype": "fp8_e4m3fn"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "13": {
+    "inputs": {
+      "noise": [
+        "25",
+        0
+      ],
+      "guider": [
+        "22",
+        0
+      ],
+      "sampler": [
+        "16",
+        0
+      ],
+      "sigmas": [
+        "17",
+        0
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "16": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "17": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 20,
+      "denoise": 1,
+      "model": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "22": {
+    "inputs": {
+      "model": [
+        "12",
+        0
+      ],
+      "conditioning": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "BasicGuider"
+    }
+  },
+  "25": {
+    "inputs": {
+      "noise_seed": 375947136610401
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  }
+}
+
 // const prompt = {
 //   "3": {
 //     "inputs": {
@@ -510,11 +681,12 @@ const sd3Prompt = {
 // }
 
 function createImagePromptFromText(text) {
-    const fullPrompt = sd3Prompt
+    const fullPrompt = fluxPrompt
     if (text) {
         // fullPrompt["3"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
         // fullPrompt["33"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
-        fullPrompt["271"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+        // fullPrompt["271"]["inputs"]["seed"] = Math.floor(Math.random() * 1000000000000000);
+        fullPrompt["25"]["inputs"]["noise_seed"] = Math.floor(Math.random() * 1000000000000000);
         fullPrompt["6"]["inputs"]["text"] = text;
     }
     return fullPrompt
@@ -525,7 +697,7 @@ const ComfyUIWrapper = {
         try {
             const prompt = createImagePromptFromText(text);
             const images = await generateImage(prompt);
-            return images[273][0];
+            return images[9][0];
         } catch (error) {
             return console.error('⚠️ ComfyUI Workflow Error: Cannot Return Image');
         }

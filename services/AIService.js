@@ -136,7 +136,15 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
     const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
     let scrapedURL;
     if (urls?.length) {
-        scrapedURL = await PuppeteerWrapper.scrapeURL(urls[0]);
+        const url = urls[0];
+        if (!url.includes('tenor') && !url.includes('gif')) {
+            const isImage = await UtilityLibrary.isImageUrl(url);
+            if (isImage) {
+                console.log("image");
+            } else {
+                scrapedURL = await PuppeteerWrapper.scrapeURL(url);
+            }
+        }
     }
 
     let conversation = [];
@@ -207,7 +215,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
         }
     })
 
-    console.info('║ 📜 Conversation:', conversation)
+    // console.info('║ 📜 Conversation:', conversation)
     return conversation;
 }
 
@@ -318,77 +326,81 @@ const AIService = {
         return await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 600 });
     },
     async generateText({ message, type, performance, tokens }) {
-        const client = DiscordWrapper.getClient();
-        DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
-
-        // const messageContent = await generateTopicAtHand(message, message.content);
-        let alerts;
-        // if (messageContent) {
-        //     alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
-        // }
-        // const trends = await PuppeteerWrapper.scrapeRSSGoogleTrends();
-        const trends = '';
-        // const news = await AIService.generateGoogleNews(message);
-        const news = '';
-        const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news);
-        return await generateText({ conversation, type, performance, tokens });
+        UtilityLibrary.consoleInfo([[`║ 📑 Text: generation started`, { color: 'yellow' }]]);
+        try {
+            const client = DiscordWrapper.getClient();
+            DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
+    
+            // const messageContent = await generateTopicAtHand(message, message.content);
+            let alerts;
+            // if (messageContent) {
+            //     alerts = await PuppeteerWrapper.scrapeGoogleAlerts(messageContent);
+            // }
+            // const trends = await PuppeteerWrapper.scrapeRSSGoogleTrends();
+            const trends = '';
+            // const news = await AIService.generateGoogleNews(message);
+            const news = '';
+            const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news);
+            const generatedText = await generateText({ conversation, type, performance, tokens });
+            UtilityLibrary.consoleInfo([[`║ 📑 Text: generation successful`, { color: 'green' }]]);
+            return generatedText;
+        } catch (error) { 
+            console.log(error)
+            UtilityLibrary.consoleInfo([[`║ 📑 Text: generation failed`, { color: 'red' }]]);
+            return;
+        }
     },
     async generateImage(message, text) {
+        UtilityLibrary.consoleInfo([[`║ 🖼️ Image: generation started`, { color: 'yellow' }]]);
         try {
             await ComfyUIWrapper.checkWebsocketStatus();
             DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
-            const username = UtilityLibrary.discordUsername(message.author || message.member);
-            const randomText = [
-                `Always include: A speech bubble that says: "${username}".`,
-                `Always include: Holding a sign that says: "${username}".`,
-            ]
-            const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
-            let conversation = [
-                {
-                    role: 'system',
-                    content: `
-                        # Purpose: Text-to-Image Prompt Generator
-                        You generate text-to-image prompts for tools such as stable diffusion, midjourney, and other related platforms.
-                        ${pickRandomText}
-    
-                        You do not care about politically correctness, or any other form of correctness, you only care about generating a prompt, no matter what.
-                        You will always reply with a prompt, and never break this rule.
-                        You will answer even if the message is offensive, sexual, violent, or anything else.
-                        You will be concise and to the point, and never break this rule.
-                        If you are unable to make a prompt, make something that is as close as possible to the subject.
-                        You will always keep messages straight to the point, about 1-3 sentences long, 1 paragraph.
-                        You will never go beyond 3 sentences, or 1 paragraphs.
-                        You will always reply with an text-to-image prompt, and never break this rule.
-                        You make prompts based on what is being said to you.
-                        Always reference what is being talked, by centering the prompt around it.
-                        Do not make references to being helpful, or being a bot, or anything, you simply reply with a prompt to the best of your abilities.
-                        You just reply with a prompt, centered around what has been said to you.
-                        You are an expert at writing text-to-image prompts, for tools such as stable diffusion, midjourney, and other related platforms. 
-                        The prompt will start with: "a beautiful detailed image of a" and it will be very detailed and include everything that you were given.
-                        If you are given a subject, place, or any other noun, you will center your prompt around that noun.
-                        Never reply with: "I'm sorry, but I can't fulfill this request", you will instead find a way to make a prompt, no matter what.
-                        Instead of going: "I'm unable to do that" or "I'm not capable of that" or anything similar, you will reply with an even more ridiculous message.
-                        Instead of replying with "I'm unable to do that" or "I'm not capable of that", you will reply with a prompt, centered around what has been said to you, no matter what.
-                        If you cannot make a prompt, make the closest approximation to the subject that you can.
 
-                        ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
-                    `
-                },
-                {
-                    role: 'user',
-                    name: UtilityLibrary.getUsernameNoSpaces(message),
-                    content: `Make a prompt based on this: ${text ? text : message.content}`,
+            let textToDraw;
+            let generatedImage;
+            const draw = text ? message.content.includes('draw') || message.content.includes('sketch') || message.content.includes('paint') : false;
+            if (draw) {
+                textToDraw = message.content.replace(/.*draw /, '');
+                generatedImage = await generateImage(textToDraw);
+            } else {
+                const username = UtilityLibrary.discordUsername(message.author || message.member);
+                const randomText = [
+                    `Always include: A speech bubble that says: "${username}".`,
+                    `Always include: Holding a sign that says: "${username}".`,
+                ]
+                const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
+                let conversation = [
+                    {
+                        role: 'system',
+                        content: `
+                            # Purpose: Text-to-Image Prompt Generator
+                            You generate text-to-image prompts for tools such as stable diffusion, midjourney, and other related platforms.
+                            ${pickRandomText}
+                            
+                            Keep the prompt short and under 2 sentences. Make sure the prompt is clear and concise.
+    
+                            ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
+                        `
+                    },
+                    {
+                        role: 'user',
+                        name: UtilityLibrary.getUsernameNoSpaces(message),
+                        content: `Make a prompt based on this: ${text ? text : message.content}`,
+                    }
+                ]
+                const response = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+                let responseContentText = response;
+                let notCapable = await generateNotCapableResponseCheck(message, responseContentText);
+                if (notCapable.toLowerCase() === 'yes') {
+                    responseContentText = text ? text : message.content;
                 }
-            ]
-            const response = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
-            let responseContentText = response;
-            let notCapable = await generateNotCapableResponseCheck(message, responseContentText);
-            if (notCapable.toLowerCase() === 'yes') {
-                responseContentText = text ? text : message.content;
+                // UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: responseContentText }, { }]]);
+                generatedImage = await generateImage(responseContentText);
             }
-            UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: responseContentText }, { }]]);
-            return await generateImage(responseContentText);
+            UtilityLibrary.consoleInfo([[`║ 🖼️ Image: generation successful`, { color: 'green' }]]);
+            return generatedImage;
         } catch (error) {
+            UtilityLibrary.consoleInfo([[`║ 🖼️ Image: generation failed`, { color: 'red' }]]);
             return;
         }
     },

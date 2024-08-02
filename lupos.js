@@ -1,3 +1,4 @@
+process.noDeprecation = true
 require('dotenv/config');
 const {
     CHANNEL_ID_LONEWOLF_FITEWOLF,
@@ -5,6 +6,12 @@ const {
     CHANNEL_ID_LONEWOLF_POLITICS,
     GUILD_ID_LONEWOLF,
     ROLE_ID_BLABBERMOUTH,
+    WHITEMANE_YAPPER_ROLE_ID,
+    WHITEMANE_OVERREACTOR_ROLE_ID,
+    WHITEMANE_POLITICS_CHANNEL_ID,
+    WHITEMANE_GENERAL_CHANNEL_ID,
+    WHITEMANE_FITEMANE_CHANNEL_ID,
+    GUILD_ID_WHITEMANE,
     GENERATE_IMAGE,
     GENERATE_VOICE,
     BLABBERMOUTH,
@@ -21,6 +28,7 @@ const MoodService = require('./services/MoodService.js');
 const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
+const luxon = require('luxon');
 
 const client = DiscordWrapper.instantiate();
 
@@ -31,6 +39,9 @@ const commandFolders = fs.readdirSync(foldersPath);
 // D:\develop\chatter is one level up from here
 // const chatterPath = path.join(__dirname, '../chatter');
 const chatterPath = '\\\\wsl.localhost\\Ubuntu\\home\\rodrigo\\chatter';
+
+let lastMessageSentTime = luxon.DateTime.now().toISO()
+let isResponding = false
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
@@ -69,24 +80,82 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
+async function findOverreactors(combinedMessages, guild) {
+    const userIds = [];
+    let mostCommonOverreactorId;
+  
+    try {
+        const results = await Promise.all(
+            combinedMessages.map(message => 
+            Promise.all(
+                Array.from(message.reactions.cache.values()).map(reaction => 
+                reaction.users.fetch()
+                )
+            )
+            )
+        );
+    
+        results.forEach(reactions => {
+            reactions.forEach(users => {
+            users.forEach(user => {
+                const existingUser = userIds.find(u => u.id === user.id);
+                if (existingUser) {
+                existingUser.count++;
+                } else {
+                userIds.push({ id: user.id, count: 1 });
+                }
+            });
+            });
+        });
+        
+        const overreactorRoleId = WHITEMANE_OVERREACTOR_ROLE_ID;
+        mostCommonOverreactorId = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]).id;
+        mostCommonOverreactorCount = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]).count;
+
+        if (mostCommonOverreactorCount > 4) {
+            const overreactorRole = guild.roles.cache.find(role => role.id === overreactorRoleId);
+    
+            const currentOverreactor = await guild.members.fetch(mostCommonOverreactorId);
+    
+            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overreactorRoleId));
+            if (previousOverreactorId !== currentOverreactor.id) {
+                await membersWithRole.forEach(member => member.roles.remove(overreactorRole));
+                currentOverreactor.roles.add(overreactorRole);
+                previousOverreactorId = currentOverreactor.id;
+                UtilityLibrary.consoleInfo([[`🤯 ${currentOverreactor.displayName} has been given the role ${overreactorRole.name}`, { color: 'red' }]]);
+            }
+        } else {
+            const overreactorRole = guild.roles.cache.find(role => role.id === overreactorRoleId);
+            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overreactorRoleId));
+            await membersWithRole.forEach(member => member.roles.remove(overreactorRole));
+        }
+    } catch (err) {
+      console.error('Error in processing:', err);
+    }
+  }
+
 const IGNORE_PREFIX = "!";
 
 let previousBlabberMouthId;
 
+let previousOverreactorId;
+
 async function blabberMouth(client) {
-    const channel1 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_FITEWOLF);
-    const channel2 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_GENERAL_DISCUSSION);
-    const channel3 = client.channels.cache.get(CHANNEL_ID_LONEWOLF_POLITICS);
-    const guild = client.guilds.cache.get(GUILD_ID_LONEWOLF);
-    const roleId = ROLE_ID_BLABBERMOUTH;
+    const channel1 = client.channels.cache.get(WHITEMANE_POLITICS_CHANNEL_ID);
+    const channel2 = client.channels.cache.get(WHITEMANE_GENERAL_CHANNEL_ID);
+    const channel3 = client.channels.cache.get(WHITEMANE_FITEMANE_CHANNEL_ID);
+    const guild = client.guilds.cache.get(GUILD_ID_WHITEMANE);
+    const yapperRoleId = WHITEMANE_YAPPER_ROLE_ID;
 
     const allMessages = await Promise.all([
-        channel1.messages.fetch({ limit: 33 }),
-        channel2.messages.fetch({ limit: 33 }),
-        channel3.messages.fetch({ limit: 33 }),
+        channel1.messages.fetch({ limit: 100 }),
+        // channel2.messages.fetch({ limit: 10}),
+        // channel3.messages.fetch({ limit: 15 }),
     ]);
     
-    const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);
+    // const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);
+    
+    const combinedMessages = allMessages[0]
 
     const last100Recent = [...combinedMessages]
     .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
@@ -117,15 +186,20 @@ async function blabberMouth(client) {
 
     const mostCommonAuthorId = Object.keys(first100Authors).reduce((a, b) => first100Authors[a] > first100Authors[b] ? a : b);
 
-    const role = guild.roles.cache.find(role => role.id === roleId);
+    
+
+    await findOverreactors(combinedMessages, guild);
+    
+
+    const yapperRole = guild.roles.cache.find(role => role.id === yapperRoleId);
     const currentBlabbermouth = await guild.members.fetch(mostCommonAuthorId);
-    const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === roleId));
+    const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === yapperRoleId));
 
     if (previousBlabberMouthId !== currentBlabbermouth.id) {
-        await membersWithRole.forEach(member => member.roles.remove(role));
-        currentBlabbermouth.roles.add(role);
+        await membersWithRole.forEach(member => member.roles.remove(yapperRole));
+        currentBlabbermouth.roles.add(yapperRole);
         previousBlabberMouthId = currentBlabbermouth.id;
-        console.log(`${currentBlabbermouth.displayName} has been given the role ${role.name}`);
+        UtilityLibrary.consoleInfo([[`🤌 ${currentBlabbermouth.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
     }
 
     // find top 5 common authors
@@ -172,15 +246,21 @@ async function blabberMouth(client) {
 }
 
 function displayAllGuilds() {
-    let connectedGuildsText = '🌎 Connected Guilds: '
+    const guildArray = []
     client.guilds.cache.forEach(guild => {
-        connectedGuildsText += `${guild.name}(${guild.id}) `;
+        // connectedGuildsText += `${guild.name}(${guild.id}) `;
+        guildArray.push(guild);
     });
+    let connectedGuildsText = `🌎 Connected Guilds (Servers): ${guildArray.length }`
     UtilityLibrary.consoleInfo([[connectedGuildsText, {}]]);
 }
 
+
+UtilityLibrary.consoleInfo([[`---`, { bold: true, color: 'green' }]]);
+UtilityLibrary.consoleInfo([[`🤖 Lupos v1.0 starting`, { bold: true, color: 'red' }]]);
+
 client.on("ready", () => {
-    UtilityLibrary.consoleInfo([[`👌 Successfully Logged in as ${client.user.tag}!`, { bold: true }]]);
+    UtilityLibrary.consoleInfo([[`👌 Logged in as ${client.user.tag}`, { bold: true }]]);
     AlcoholService.instantiate();
     MoodService.instantiate();
     displayAllGuilds()
@@ -193,15 +273,15 @@ client.on("ready", () => {
   }
 );
 
-let processingQueue = false;
+let processingMessageQueue = false;
 const queue = []
     
-async function processQueue() {
-    if (processingQueue || queue.length === 0) {
-        console.log('empty Queue')
+async function messageQueue() {
+    if (processingMessageQueue || queue.length === 0) {
+        console.log('empty queue')
         return;
     }
-    processingQueue = true;
+    processingMessageQueue = true;
     while (queue.length > 0) {
         const message = queue.shift();
         await message.channel.sendTyping();
@@ -209,6 +289,7 @@ async function processQueue() {
 
         const userMention = UtilityLibrary.discordUserMention(message);
         const username = UtilityLibrary.discordUsername(message.author || message.member);
+        const discordUserTag = UtilityLibrary.discordUserTag(message);
         
         let timer = 0;
 
@@ -216,11 +297,11 @@ async function processQueue() {
             timer++;
         }, 1000);
         
-        UtilityLibrary.consoleInfo([[`╔═══════════════════════════════════░▒▓ +MESSAGE+ ▓▒░═══════════════════════════════════╗`, { rapidBlink: true, color: 'yellow' }]]);
-        console.info(`║ 💬 Replying to: ${username}(${userMention})`);
+        UtilityLibrary.consoleInfo([[`╔═══════════════░▒▓ +MESSAGE+ ▓▒░══════════════════╗`, { color: 'yellow' }]]);
+        UtilityLibrary.consoleInfo([[`║ 💬 Replying to: ${discordUserTag}`, { color: 'cyan' }]]);
         if (message.guild) {
-            console.info(`║ 🌐 Server: ${message.guild.name}`)
-            console.info(`║ 📡 Channel: #${message.channel.name}`);
+            UtilityLibrary.consoleInfo([[`║ 🌐 Server: ${message.guild.name}`, { color: 'white' }]]);
+            UtilityLibrary.consoleInfo([[`║ 📡 Channel: #${message.channel.name}`, { color: 'white' }]]);
         }
 
         let generatedResponse = await AIService.generateText({message});
@@ -228,18 +309,20 @@ async function processQueue() {
         if (!generatedResponse) {
             UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
             timerInterval.unref();
-            UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'red' }]]);
+            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'red' }]]);
             message.reply("...");
             return;
         }
 
-        UtilityLibrary.consoleInfo([[`║ 📑 Text: `, { }], [{ response: generatedResponse }, { }]]);
+        // UtilityLibrary.consoleInfo([[`║ 📑 Text: `, { }], [{ response: generatedResponse }, { }]]);
 
 
         function findUserById(id) {
             const user = client.users.cache.get(id);
             return UtilityLibrary.discordUsername(user);
         }
+
+        
     
         let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
 
@@ -265,8 +348,14 @@ async function processQueue() {
         let generatedImage;
         let generatedAudioFile, generatedAudioBuffer;
 
-        if (GENERATE_IMAGE) { generatedImage = await AIService.generateImage(message, responseMessage) }
-        if (GENERATE_VOICE) { ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt)) }
+        if (GENERATE_IMAGE) {
+            generatedImage = await AIService.generateImage(message, responseMessage) 
+        }
+        if (GENERATE_VOICE) { 
+            UtilityLibrary.consoleInfo([[`║ 🎤 Generating voice...`, { color: 'yellow' }]]);
+            ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt))
+            UtilityLibrary.consoleInfo([[`║ 🎤 ... voice generated.`, { color: 'green' }]]);
+        }
 
         const messageChunkSizeLimit = 2000;
         for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
@@ -286,12 +375,13 @@ async function processQueue() {
             messageReplyOptions = { ...messageReplyOptions, files: files};
             await message.reply(messageReplyOptions);
         }
+        lastMessageSentTime = luxon.DateTime.now().toISO();
         UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
         timerInterval.unref();
-        UtilityLibrary.consoleInfo([[`╚═══════════════════════════════════░▒▓ -MESSAGE- ▓▒░═══════════════════════════════════╝`, { rapidBlink: true, color: 'green' }]]);
+        UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
     }
     MoodService.instantiate();
-    processingQueue = false;
+    processingMessageQueue = false;
 }
 
 client.on('messageCreate', async (message) => {
@@ -309,14 +399,14 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // If the message contains lupos, processQueue every 1/3rd of the time
+    // If the message contains lupos, messageQueue every 1/3rd of the time
     // if (message.mentions.has(client.user.id) || 
     //     (!message.mentions.has(client.user.id) && 
     //     message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && 
     //     Math.random() < 0.333)) {
     //     queue.push(message);
-    //     if (!processingQueue) {
-    //         return await processQueue();
+    //     if (!processingMessageQueue) {
+    //         return await messageQueue();
     //     }
     // }
     
@@ -326,9 +416,23 @@ client.on('messageCreate', async (message) => {
     }
 
     queue.push(message);
-    if (!processingQueue) {
-        return await processQueue()
+    if (!processingMessageQueue) {
+        isResponding = true
+        await messageQueue()
+        isResponding = false
+        return
     }
 });
+
+// check every 1 second
+setInterval(() => {
+    let currentTime = luxon.DateTime.now();
+    let lastMessageSentTimeObject = luxon.DateTime.fromISO(lastMessageSentTime);
+    let difference = currentTime.diff(lastMessageSentTimeObject, ['seconds']).toObject();
+    if (difference.seconds >= 30) {
+        // UtilityLibrary.consoleInfo([[`30 seconds or longer since last message sent`, { color: 'red' }]]);
+        lastMessageSentTime = currentTime.toISO();
+    }
+}, 1000);
 
 client.login(DISCORD_TOKEN);
