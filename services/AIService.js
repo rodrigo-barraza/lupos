@@ -358,9 +358,9 @@ const AIService = {
 
             let textToDraw;
             let generatedImage;
-            const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.includes(substring));
+            const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.toLowerCase().includes(substring));
             if (draw) {
-                textToDraw = message.content.replace(/(.*draw |.*sketch |.*paint |.*image |.*make |.*redo ) /, '');
+                textToDraw = message.content.replace(/(.*draw |.*sketch |.*paint |.*image |.*make |.*redo ) /i, '');
                 generatedImage = await generateImage(textToDraw);
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
