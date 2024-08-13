@@ -1,11 +1,6 @@
 process.noDeprecation = true
 require('dotenv/config');
 const {
-    CHANNEL_ID_LONEWOLF_FITEWOLF,
-    CHANNEL_ID_LONEWOLF_GENERAL_DISCUSSION,
-    CHANNEL_ID_LONEWOLF_POLITICS,
-    GUILD_ID_LONEWOLF,
-    ROLE_ID_BLABBERMOUTH,
     WHITEMANE_YAPPER_ROLE_ID,
     WHITEMANE_OVERREACTOR_ROLE_ID,
     WHITEMANE_POLITICS_CHANNEL_ID,
@@ -42,6 +37,12 @@ const chatterPath = '\\\\wsl.localhost\\Ubuntu\\home\\rodrigo\\chatter';
 
 let lastMessageSentTime = luxon.DateTime.now().toISO()
 let isResponding = false
+
+    
+function findUserById(id) {
+    const user = client.users.cache.get(id);
+    return UtilityLibrary.discordUsername(user);
+}
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
@@ -186,11 +187,8 @@ async function blabberMouth(client) {
 
     const mostCommonAuthorId = Object.keys(first100Authors).reduce((a, b) => first100Authors[a] > first100Authors[b] ? a : b);
 
-    
-
     await findOverreactors(combinedMessages, guild);
     
-
     const yapperRole = guild.roles.cache.find(role => role.id === yapperRoleId);
     const currentBlabbermouth = await guild.members.fetch(mostCommonAuthorId);
     const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === yapperRoleId));
@@ -304,84 +302,154 @@ async function messageQueue() {
             UtilityLibrary.consoleInfo([[`║ 📡 Channel: #${message.channel.name}`, { color: 'white' }]]);
         }
 
-        let generatedResponse = await AIService.generateText({message});
+        // if text contains the word draw, generate text and image at the same time
+        
+        const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.toLowerCase().includes(substring));
+        
+
+        let imageToGenerate = message.content;
+
+        if (message.content.match(/<@!?\d+>/g)) {
+            const userIds = message.content.match(/<@!?\d+>/g).map(user => user.replace(/<@!?/, '').replace('>', ''));
+            for (const userId of userIds) {
+                if(userId === client.user.id) continue;
+                const user = client.users.cache.get(userId);
+                if (user) {
+                    const avatar_url = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
+                    const eyes = await AIService.generateVision(avatar_url, 'Describe this image');
+                    let member = message.guild.members.cache.get(user.id);
+                    let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
+                    const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
+                    const textDescription = `<@${userId}> ([Username]: ${UtilityLibrary.discordUsername(user)}, [Description]: ${eyes.choices[0].message.content} [Roles]: ${roles}.)`;
+                    imageToGenerate = imageToGenerate.replace(`<@${userId}>`, imageDescription);
+                    message.content = message.content.replace(`<@${userId}>`, textDescription);
+                }
+            }
+        }
+
+        if (draw && GENERATE_IMAGE) {
+            // generatedImage = await AIService.generateImage(message, responseMessage)
+            // generatedResponse = await AIService.generateText({message});
+            const finalResults = await Promise.all([
+                AIService.generateText({message}),
+                AIService.generateImage(message, imageToGenerate)
+            ]);
+            const generatedResponse = finalResults[0];
+            const generatedImage = finalResults[1];
+        
+            let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
     
-        if (!generatedResponse) {
-            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
+            // replace @here and @everyone with here and everyone
+            responseMessage = responseMessage
+                                .replace(/@here/g, '꩜here')
+                                .replace(/@everyone/g, '꩜everyone')
+                                .replace(/@horde/g, '꩜horde')
+                                .replace(/@alliance/g, '꩜alliance')
+                                .replace(/@alliance/g, '꩜alliance')
+                                .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
+                                .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
+                                .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
+                                .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
+            
+    
+            const messageChunkSizeLimit = 2000;
+            for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
+                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+                clearInterval(sendTypingInterval);
+                let messageReplyOptions = { content: chunk };
+                let files = [];
+                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
+                }
+                messageReplyOptions = { ...messageReplyOptions, files: files};
+                await message.reply(messageReplyOptions);
+            }
+            lastMessageSentTime = luxon.DateTime.now().toISO();
+            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
             timerInterval.unref();
-            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'red' }]]);
-            message.reply("...");
-            return;
-        }
-
-        // UtilityLibrary.consoleInfo([[`║ 📑 Text: `, { }], [{ response: generatedResponse }, { }]]);
-
-
-        function findUserById(id) {
-            const user = client.users.cache.get(id);
-            return UtilityLibrary.discordUsername(user);
-        }
-
-        
+            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
+        } else {
+            let generatedResponse;
+            let generatedImage;
+            
     
-        let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
-
-        // replace @here and @everyone with here and everyone
-        responseMessage = responseMessage
-                            .replace(/@here/g, '꩜here')
-                            .replace(/@everyone/g, '꩜everyone')
-                            .replace(/@horde/g, '꩜horde')
-                            .replace(/@alliance/g, '꩜alliance')
-                            .replace(/@alliance/g, '꩜alliance')
-                            .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
-                            .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
-                            .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
-                            .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
-
-        //  replace <@!1234567890> with the user's display name
-        const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
-            const id = match.replace(/<@!?/, '').replace('>', '');
-            return findUserById(id);
-        }).substring(0, 220);
-
+            if (GENERATE_IMAGE) {
+                const finalResults = await Promise.all([
+                    AIService.generateText({message}),
+                    AIService.generateImage(message, message.content)
+                ]);
+    
+                generatedResponse = finalResults[0];
+                generatedImage = finalResults[1];
+            } else {
+                generatedResponse = await AIService.generateText({message});
+            }
         
-        let generatedImage;
-        let generatedAudioFile, generatedAudioBuffer;
+            if (!generatedResponse) {
+                UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
+                timerInterval.unref();
+                UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'red' }]]);
+                message.reply("...");
+                return;
+            }
+    
+            
+        
+            let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+    
+            // replace @here and @everyone with here and everyone
+            responseMessage = responseMessage
+                                .replace(/@here/g, '꩜here')
+                                .replace(/@everyone/g, '꩜everyone')
+                                .replace(/@horde/g, '꩜horde')
+                                .replace(/@alliance/g, '꩜alliance')
+                                .replace(/@alliance/g, '꩜alliance')
+                                .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
+                                .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
+                                .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
+                                .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
+    
+            //  replace <@!1234567890> with the user's display name
+            const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
+                const id = match.replace(/<@!?/, '').replace('>', '');
+                return findUserById(id);
+            }).substring(0, 220);
+    
+            
+            let generatedAudioFile, generatedAudioBuffer;
 
-        if (GENERATE_IMAGE) {
-            generatedImage = await AIService.generateImage(message, responseMessage) 
-        }
-        if (GENERATE_VOICE) { 
-            UtilityLibrary.consoleInfo([[`║ 🎤 Generating voice...`, { color: 'yellow' }]]);
-            ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt))
-            UtilityLibrary.consoleInfo([[`║ 🎤 ... voice generated.`, { color: 'green' }]]);
-        }
-
-        const messageChunkSizeLimit = 2000;
-        for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
-            const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-            clearInterval(sendTypingInterval);
-            let messageReplyOptions = { content: chunk };
-            let files = [];
-            if (generatedAudioFile && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudioFile}`), name: `${generatedAudioFile}` });
+            if (GENERATE_VOICE) { 
+                UtilityLibrary.consoleInfo([[`║ 🎤 Generating voice...`, { color: 'yellow' }]]);
+                ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt))
+                UtilityLibrary.consoleInfo([[`║ 🎤 ... voice generated.`, { color: 'green' }]]);
             }
-            if (generatedAudioBuffer && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: Buffer.from(generatedAudioBuffer, 'base64'), name: 'lupos.mp3' });
+    
+            const messageChunkSizeLimit = 2000;
+            for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
+                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+                clearInterval(sendTypingInterval);
+                let messageReplyOptions = { content: chunk };
+                let files = [];
+                if (generatedAudioFile && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudioFile}`), name: `${generatedAudioFile}` });
+                }
+                if (generatedAudioBuffer && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    files.push({ attachment: Buffer.from(generatedAudioBuffer, 'base64'), name: 'lupos.mp3' });
+                }
+                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                    files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
+                }
+                messageReplyOptions = { ...messageReplyOptions, files: files};
+                await message.reply(messageReplyOptions);
             }
-            if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
-            }
-            messageReplyOptions = { ...messageReplyOptions, files: files};
-            await message.reply(messageReplyOptions);
-        }
-        lastMessageSentTime = luxon.DateTime.now().toISO();
-        UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
-        timerInterval.unref();
-        UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
+            lastMessageSentTime = luxon.DateTime.now().toISO();
+            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
+            timerInterval.unref();
+            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
+        }    
     }
     MoodService.instantiate();
-    processingMessageQueue = false;
+    processingMessageQueue = false;    
 }
 
 client.on('messageCreate', async (message) => {

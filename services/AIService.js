@@ -148,8 +148,13 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
     }
 
     let conversation = [];
+
+    const messageContent = message.content;
+
     // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
     let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
+    
+    message.content = messageContent;
 
     let recent100MessagesArray = recent100Messages.map((msg) => msg);
 
@@ -199,7 +204,7 @@ ${MessageService.generatePersonalityMessage()}
 ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
     });
 
-    recentMessages.forEach((msg) => {
+    recentMessages.forEach((msg, index) => {
         if (msg.author.id === client.user.id) {
             conversation.push({
                 role: 'assistant',
@@ -210,7 +215,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             conversation.push({
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(msg),
-                content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username)} said ${msg.content}.`,
+                content: `${msg.author.displayName ? UtilityLibrary.capitalize(msg.author.displayName) : UtilityLibrary.capitalize(msg.author.username)} said ${index === recentMessages.length - 1 ? message.content : msg.content}:`
             })
         }
     })
@@ -343,6 +348,11 @@ const AIService = {
             const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news);
             const generatedText = await generateText({ conversation, type, performance, tokens });
             UtilityLibrary.consoleInfo([[`║ 📑 Text: generation successful`, { color: 'green' }]]);
+            // const bannedWordsRegex = /:\w+:|beaner|[c0245][0-9]on|chink|f[\s.@]a[g]{1,2}[oi0]{1,2}t|m(?:[7-9]|10)g(?:[7-9]|10)t|f(?:[7-9]|10)g(?:[7-9]|10)|[gf][ao]int[rt]|fgt{2,3}rtd|fgt{2,3}|froc[i1]{2}aggine|g[0o]{2}k|honkey|https:\/\/imgur.com\/aRYkT2C|kike|kys|n![1ig]{1,3}3r|n!g{1,2}er|ni🅱️ 🅱️ a|ni[bg]{1,3}a|[ng][i1][g]{1,2}3r|n[ig]{3}a|[n3][i1][g6]{1,2}[3e]?[r]?|n[ig]{3}let|spic|tran{2,3}[iy]{1,2}|wetback|www.wowgoldgo.com/gi;
+            // if (generatedText.match(bannedWordsRegex)) {
+            //     UtilityLibrary.consoleInfo([[`║ 📑 Text: generation failed because of regex`, { color: 'red' }]]);
+            //     return '...';
+            // }
             return generatedText;
         } catch (error) { 
             console.log(error)
@@ -358,15 +368,20 @@ const AIService = {
 
             let textToDraw;
             let generatedImage;
-            const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.toLowerCase().includes(substring));
+            const draw = ['draw', 'sketch', 'paint', 'make', 'redo', 'redraw'].some(substring => message.content.toLowerCase().includes(substring));
             if (draw) {
-                textToDraw = message.content.replace(/(.*draw |.*sketch |.*paint |.*image |.*make |.*redo ) /i, '');
-                generatedImage = await generateImage(textToDraw);
+                textToDraw = text.replace(/.*?(draw|sketch|paint|make|redo|redraw) /i, '');
+                generatedImage = await generateImage(text);
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
                 const randomText = [
                     `Always include: A speech bubble that says: "${username}".`,
                     `Always include: Holding a sign that says: "${username}".`,
+                    `Always include: Shirt with text that says: "${username}".`,
+                    `Always include: Wall in the back with: "${username}" written.`,
+                    `Always include: A whiteboard with: "${username}" written.`,
+                    `Always include: A balloon with: "${username}" written.`,
+                    `Always include: A pokemon card of: "${username}".`,
                 ]
                 const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
                 let conversation = [
