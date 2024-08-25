@@ -266,11 +266,22 @@ async function messageQueue() {
                     let member = message.guild.members.cache.get(user.id);
                     let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                     const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
-                    const textDescription = `<@${userId}> ([Username]: ${UtilityLibrary.discordUsername(user)}, [Description]: ${eyes.choices[0].message.content} [Roles]: ${roles}.)`;
+                    // const textDescription = `<@${userId}> (Username: ${UtilityLibrary.discordUsername(user)}, Visual Description: ${eyes.choices[0].message.content} [Attributes]: ${roles}.)`;
+                    const textDescription = 
+`User ID: ${userId}
+Username: ${UtilityLibrary.discordUsername(user)}
+Discord Tag: <@${userId}>
+Visual Description: ${eyes.choices[0].message.content}
+Roles: ${roles}`;
                     imageToGenerate = imageToGenerate.replace(`<@${userId}>`, imageDescription);
-                    message.content = message.content.replace(`<@${userId}>`, textDescription);
+                    // message.content = message.content.replace(`<@${userId}>`, textDescription);
+                    message.content = 
+`${textDescription}
+                    
+${message.content}`
+                    
                 }
-            }
+            }   
         }
 
         async function hasImageAttachmentOrUrl(message) {
@@ -285,12 +296,10 @@ async function messageQueue() {
             } else if (urls?.length) {
                 const url = urls[0];
                 const isImage = await UtilityLibrary.isImageUrl(url);
-                console.log('isImage', isImage)
                 if (isImage) {
                     hasImage = url;
                 }
             }
-            console.log('hasImage', hasImage)
             return hasImage;
         }
 
@@ -300,27 +309,36 @@ async function messageQueue() {
             const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
             const imageDescription = `${eyes.choices[0].message.content}`;
             imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
-            message.content = message.content + ' Image attached: ' + imageDescription;
+            message.content = 
+`Image attached: ${imageDescription}
+
+${message.content}`;
         }
 
         // if this is a reply to a message, get the original message
         if (message.reference) {
             const originalMessage = await message.channel.messages.fetch(message.reference.messageId);
-            // console.log(originalMessage)
             if (originalMessage) {
                 const username = UtilityLibrary.discordUsername(originalMessage.author);
                 const userId = UtilityLibrary.discordUserId(originalMessage);
                 const originalMessageContent = originalMessage.content;
                 imageToGenerate = `${imageToGenerate} Replying to message by <@${userId}> (${username}): ${originalMessageContent}`;
-                message.content = `${message.content} Replying to message by <@${userId}> (${username}): ${originalMessageContent}`;
-                console.log(1111, message.content)
-                let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(message);
+                message.content =
+`Quote User ID: <@${userId}>
+Quote Username: ${username}
+Quote Discord Tag: <@${userId}>
+Quote Message: ${originalMessageContent}
+
+${message.content}`;
+                let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(originalMessage);
                 if (imageAttachmentOrUrl) {
                     const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
                     const imageDescription = `${eyes.choices[0].message.content}`;
                     imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
-                    message.content = message.content + ' Image attached: ' + imageDescription;
-                    console.log(2222, message.content)
+                    message.content =
+`Quote attached image: ${imageDescription}
+
+${message.content}`;
                 }
                 // const eyes = await AIService.generateVision(originalMessageContent, 'Describe this image');
                 // const imageDescription = `${eyes.choices[0].message.content}`;
@@ -329,8 +347,8 @@ async function messageQueue() {
             }
         }
         
-
-
+        console.log(1234567890)
+        console.log(message.content)
         if (isDrawRequest && GENERATE_IMAGE) {
             const finalResults = await Promise.all([
                 AIService.generateText({message}),
