@@ -96,6 +96,26 @@ const UtilityLibrary = {
         howl = howl + '!';
         return howl;
     },
+    areArraysEqual(array1, array2) {
+        return array1.length === array2.length &&
+        array1.every(item1 =>
+            array2.some(item2 =>
+            Object.keys(item1).length === Object.keys(item2).length &&
+            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
+            )
+        ) &&
+        array2.every(item1 =>
+            array1.some(item2 =>
+            Object.keys(item1).length === Object.keys(item2).length &&
+            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
+            )
+        );
+    },
+    // Discord Utilities
+    findUserById(client, userId) {
+        const user = client.users.cache.get(userId)
+        return UtilityLibrary.discordUsername(user)
+    },
     discordBotsAmount(message) {
         if (message) {
             const bots = message.guild.members.cache.filter(member => member.user.bot).size;

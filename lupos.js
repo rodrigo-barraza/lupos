@@ -31,18 +31,9 @@ client.commands = new Collection();
 
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
-// D:\develop\chatter is one level up from here
-// const chatterPath = path.join(__dirname, '../chatter');
-const chatterPath = '\\\\wsl.localhost\\Ubuntu\\home\\rodrigo\\chatter';
 
 let lastMessageSentTime = luxon.DateTime.now().toISO()
 let isResponding = false
-
-    
-function findUserById(id) {
-    const user = client.users.cache.get(id);
-    return UtilityLibrary.discordUsername(user);
-}
 
 for (const folder of commandFolders) {
 	const commandsPath = path.join(foldersPath, folder);
@@ -81,9 +72,11 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-async function findOverreactors(combinedMessages, guild) {
+async function generateOverReactors(combinedMessages, guild) {
+    const overReactorRoleId = WHITEMANE_OVERREACTOR_ROLE_ID;
+
     const userIds = [];
-    let mostCommonOverreactorId;
+    let mostCommonOverReactor;
   
     try {
         const results = await Promise.all(
@@ -98,149 +91,104 @@ async function findOverreactors(combinedMessages, guild) {
     
         results.forEach(reactions => {
             reactions.forEach(users => {
-            users.forEach(user => {
-                const existingUser = userIds.find(u => u.id === user.id);
-                if (existingUser) {
-                existingUser.count++;
-                } else {
-                userIds.push({ id: user.id, count: 1 });
-                }
-            });
+                users.forEach(user => {
+                    const existingUser = userIds.find(u => u.id === user.id);
+                    if (existingUser) {
+                        existingUser.count++;
+                    } else {
+                        userIds.push({ id: user.id, count: 1 });
+                    }
+                });
             });
         });
         
-        const overreactorRoleId = WHITEMANE_OVERREACTOR_ROLE_ID;
-        mostCommonOverreactorId = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]).id;
-        mostCommonOverreactorCount = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]).count;
+        mostCommonOverReactor = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]);
 
-        if (mostCommonOverreactorCount > 4) {
-            const overreactorRole = guild.roles.cache.find(role => role.id === overreactorRoleId);
+        if (mostCommonOverReactor.count > 4) {
+            const overReactorRole = guild.roles.cache.find(role => role.id === overReactorRoleId);
+            const currentOverReactor = await guild.members.fetch(mostCommonOverReactor.id);
     
-            const currentOverreactor = await guild.members.fetch(mostCommonOverreactorId);
-    
-            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overreactorRoleId));
-            if (previousOverreactorId !== currentOverreactor.id) {
-                await membersWithRole.forEach(member => member.roles.remove(overreactorRole));
-                currentOverreactor.roles.add(overreactorRole);
-                previousOverreactorId = currentOverreactor.id;
-                UtilityLibrary.consoleInfo([[`🤯 ${currentOverreactor.displayName} has been given the role ${overreactorRole.name}`, { color: 'red' }]]);
+            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overReactorRoleId));
+            if (previousOverReactorId !== currentOverReactor.id) {
+                await membersWithRole.forEach(member => member.roles.remove(overReactorRole));
+                currentOverReactor.roles.add(overReactorRole);
+                previousOverReactorId = currentOverReactor.id;
+                UtilityLibrary.consoleInfo([[`🤯 ${currentOverReactor.displayName} has been given the role ${overReactorRole.name}`, { color: 'red' }]]);
             }
         } else {
-            const overreactorRole = guild.roles.cache.find(role => role.id === overreactorRoleId);
-            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overreactorRoleId));
+            const overreactorRole = guild.roles.cache.find(role => role.id === overReactorRoleId);
+            const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === overReactorRoleId));
             await membersWithRole.forEach(member => member.roles.remove(overreactorRole));
         }
     } catch (err) {
       console.error('Error in processing:', err);
     }
-  }
+}
+
+async function generateYappers(combinedMessages, guild) {
+    const yapperRoleId = WHITEMANE_YAPPER_ROLE_ID;
+    const yapperRole = guild.roles.cache.find(role => role.id === yapperRoleId);
+
+    const authorCounts = combinedMessages.reduce((counts, message) => {
+        const authorId = message.author.id;
+        let authorObj = counts.find(obj => obj.authorId === authorId);
+        if (!authorObj) {
+            authorObj = { 
+                authorId: authorId,
+                displayName: message.author.globalName || 'Unknown',
+                count: 0,
+                earliestTimestamp: message.createdTimestamp
+            };
+            counts.push(authorObj);
+        }
+        authorObj.count++;
+        authorObj.earliestTimestamp = Math.min(authorObj.earliestTimestamp, message.createdTimestamp);
+    
+        return counts;
+    }, []);
+
+    const topAuthorCounts = authorCounts
+    .sort((a, b) => a.count - b.count)
+    .slice(0, 5);
+
+    const topAuthorId = topAuthorCounts.reduce((a, b) => a.count > b.count ? a : b).authorId;
+    
+    const topAuthor = await guild.members.fetch(topAuthorId);
+    const membersWithYapperRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === yapperRoleId));
+
+    if (previousTopAuthorId !== topAuthor.id) {
+        await membersWithYapperRole.forEach(member => member.roles.remove(yapperRole));
+        topAuthor.roles.add(yapperRole);
+        previousTopAuthorId = topAuthor.id;
+        UtilityLibrary.consoleInfo([[`🤌 ${topAuthor.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
+    }
+
+    const currentYappers = YapperService.getYappers();
+
+    if (!UtilityLibrary.areArraysEqual(currentYappers, topAuthorCounts)) {
+        YapperService.setYappers(topAuthorCounts);
+        // console.log('🗣 Current yappers:', mappedYappers);
+    }
+}
 
 const IGNORE_PREFIX = "!";
 
-let previousBlabberMouthId;
+let previousTopAuthorId;
 
-let previousOverreactorId;
+let previousOverReactorId;
 
-async function blabberMouth(client) {
+async function autoAssignRoles(client) {
     const channel1 = client.channels.cache.get(WHITEMANE_POLITICS_CHANNEL_ID);
-    const channel2 = client.channels.cache.get(WHITEMANE_GENERAL_CHANNEL_ID);
-    const channel3 = client.channels.cache.get(WHITEMANE_FITEMANE_CHANNEL_ID);
     const guild = client.guilds.cache.get(GUILD_ID_WHITEMANE);
-    const yapperRoleId = WHITEMANE_YAPPER_ROLE_ID;
 
     const allMessages = await Promise.all([
-        channel1.messages.fetch({ limit: 100 }),
-        // channel2.messages.fetch({ limit: 10}),
-        // channel3.messages.fetch({ limit: 15 }),
+        channel1.messages.fetch({ limit: 100 })
     ]);
-    
-    // const combinedMessages = allMessages[0].concat(allMessages[1], allMessages[2]);
     
     const combinedMessages = allMessages[0]
 
-    const last100Recent = [...combinedMessages]
-    .sort((a, b) => b.createdTimestamp - a.createdTimestamp)
-    .slice(0, 100);
-
-
-
-    // find the most common author.id in messages array
-    const authorCounts = combinedMessages.reduce((counts, message) => {
-        if (Object.keys(counts).length < 100) {
-            const authorId = message.author.id;
-            if (!counts[authorId]) {
-                counts[authorId] = { count: 0, earliestTimestamp: message.createdTimestamp };
-            }
-            counts[authorId].count++;
-            counts[authorId].earliestTimestamp = Math.min(counts[authorId].earliestTimestamp, message.createdTimestamp);
-        }
-        return counts;
-    }, {});
-    
-    const first100Authors = Object.entries(authorCounts)
-        .sort((a, b) => a[1].earliestTimestamp - b[1].earliestTimestamp)
-        .slice(0, 100)
-        .reduce((acc, [authorId, { count }]) => {
-            acc[authorId] = count;
-            return acc;
-        }, {});
-
-    const mostCommonAuthorId = Object.keys(first100Authors).reduce((a, b) => first100Authors[a] > first100Authors[b] ? a : b);
-
-    await findOverreactors(combinedMessages, guild);
-    
-    const yapperRole = guild.roles.cache.find(role => role.id === yapperRoleId);
-    const currentBlabbermouth = await guild.members.fetch(mostCommonAuthorId);
-    const membersWithRole = guild.members.cache.filter(member => member.roles.cache.some(role => role.id === yapperRoleId));
-
-    if (previousBlabberMouthId !== currentBlabbermouth.id) {
-        await membersWithRole.forEach(member => member.roles.remove(yapperRole));
-        currentBlabbermouth.roles.add(yapperRole);
-        previousBlabberMouthId = currentBlabbermouth.id;
-        UtilityLibrary.consoleInfo([[`🤌 ${currentBlabbermouth.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
-    }
-
-    // find top 5 common authors
-    const sortedAuthors = Object.entries(first100Authors).sort((a, b) => b[1] - a[1]);
-    const yappers = sortedAuthors.slice(0, 5);
-
-    const oldYappers = YapperService.getYappers();
-
-    const areArraysEqual = (array1, array2) =>
-        array1.length === array2.length &&
-        array1.every(item1 =>
-            array2.some(item2 =>
-            Object.keys(item1).length === Object.keys(item2).length &&
-            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
-            )
-        ) &&
-        array2.every(item1 =>
-            array1.some(item2 =>
-            Object.keys(item1).length === Object.keys(item2).length &&
-            Object.entries(item1).every(([key, val]) => item2.hasOwnProperty(key) && item2[key] === val)
-            )
-        );
-
-    function mapYappers(yappers) {
-        const yappersMap = yappers.reduce((acc, [id, posts]) => {
-            const member = guild.members.cache.get(id);
-            const displayName = member ? member.displayName : 'Unknown';
-            if (acc[id]) {
-                acc[id].posts += posts;
-            } else {
-                acc[id] = { id, posts, displayName };
-            }
-            return acc;
-        }, {});
-        return Object.values(yappersMap);
-    }
-
-    const mappedYappers = mapYappers(yappers);
-
-    if (!areArraysEqual(oldYappers, mappedYappers)) {
-        YapperService.setYappers(mappedYappers);
-        // console.log('🗣 Current yappers:', mappedYappers);
-    }
+    await generateOverReactors(combinedMessages, guild);
+    await generateYappers(combinedMessages, guild);
 }
 
 function displayAllGuilds() {
@@ -263,9 +211,9 @@ client.on("ready", () => {
     MoodService.instantiate();
     displayAllGuilds()
     if (BLABBERMOUTH) {
-        blabberMouth(client)
+        autoAssignRoles(client)
         setInterval(() => {
-            blabberMouth(client)
+            autoAssignRoles(client)
         }, 10 * 1000);
     }
   }
@@ -285,8 +233,6 @@ async function messageQueue() {
         await message.channel.sendTyping();
         const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
 
-        const userMention = UtilityLibrary.discordUserMention(message);
-        const username = UtilityLibrary.discordUsername(message.author || message.member);
         const discordUserTag = UtilityLibrary.discordUserTag(message);
         
         let timer = 0;
@@ -304,7 +250,7 @@ async function messageQueue() {
 
         // if text contains the word draw, generate text and image at the same time
         
-        const draw = ['draw', 'sketch', 'paint', 'image', 'make', 'redo'].some(substring => message.content.toLowerCase().includes(substring));
+        const isDrawRequest = ['draw', 'sketch', 'paint', 'image', 'make', 'redo', 'render'].some(substring => message.content.toLowerCase().includes(substring));
         
 
         let imageToGenerate = message.content;
@@ -315,8 +261,8 @@ async function messageQueue() {
                 if(userId === client.user.id) continue;
                 const user = client.users.cache.get(userId);
                 if (user) {
-                    const avatar_url = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
-                    const eyes = await AIService.generateVision(avatar_url, 'Describe this image');
+                    const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
+                    const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
                     let member = message.guild.members.cache.get(user.id);
                     let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                     const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
@@ -327,9 +273,65 @@ async function messageQueue() {
             }
         }
 
-        if (draw && GENERATE_IMAGE) {
-            // generatedImage = await AIService.generateImage(message, responseMessage)
-            // generatedResponse = await AIService.generateText({message});
+        async function hasImageAttachmentOrUrl(message) {
+            let hasImage = false;
+            const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
+            if (message.attachments.size) {
+                const attachment = message.attachments.first();
+                const isImage = attachment.contentType.includes('image');
+                if (isImage) {
+                    hasImage = attachment.url;
+                }
+            } else if (urls?.length) {
+                const url = urls[0];
+                const isImage = await UtilityLibrary.isImageUrl(url);
+                console.log('isImage', isImage)
+                if (isImage) {
+                    hasImage = url;
+                }
+            }
+            console.log('hasImage', hasImage)
+            return hasImage;
+        }
+
+        let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(message);
+
+        if (imageAttachmentOrUrl) {
+            const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
+            const imageDescription = `${eyes.choices[0].message.content}`;
+            imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
+            message.content = message.content + ' Image attached: ' + imageDescription;
+        }
+
+        // if this is a reply to a message, get the original message
+        if (message.reference) {
+            const originalMessage = await message.channel.messages.fetch(message.reference.messageId);
+            // console.log(originalMessage)
+            if (originalMessage) {
+                const username = UtilityLibrary.discordUsername(originalMessage.author);
+                const userId = UtilityLibrary.discordUserId(originalMessage);
+                const originalMessageContent = originalMessage.content;
+                imageToGenerate = `${imageToGenerate} Replying to message by <@${userId}> (${username}): ${originalMessageContent}`;
+                message.content = `${message.content} Replying to message by <@${userId}> (${username}): ${originalMessageContent}`;
+                console.log(1111, message.content)
+                let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(message);
+                if (imageAttachmentOrUrl) {
+                    const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
+                    const imageDescription = `${eyes.choices[0].message.content}`;
+                    imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
+                    message.content = message.content + ' Image attached: ' + imageDescription;
+                    console.log(2222, message.content)
+                }
+                // const eyes = await AIService.generateVision(originalMessageContent, 'Describe this image');
+                // const imageDescription = `${eyes.choices[0].message.content}`;
+                // imageToGenerate = imageToGenerate + ' Original message: ' + imageDescription;
+                // message.content = message.content + ' Original message: ' + imageDescription;
+            }
+        }
+        
+
+
+        if (isDrawRequest && GENERATE_IMAGE) {
             const finalResults = await Promise.all([
                 AIService.generateText({message}),
                 AIService.generateImage(message, imageToGenerate)
@@ -412,7 +414,7 @@ async function messageQueue() {
             //  replace <@!1234567890> with the user's display name
             const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
                 const id = match.replace(/<@!?/, '').replace('>', '');
-                return findUserById(id);
+                return UtilityLibrary.findUserById(client, id);
             }).substring(0, 220);
     
             
@@ -466,17 +468,6 @@ client.on('messageCreate', async (message) => {
     if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) {
         return;
     }
-
-    // If the message contains lupos, messageQueue every 1/3rd of the time
-    // if (message.mentions.has(client.user.id) || 
-    //     (!message.mentions.has(client.user.id) && 
-    //     message.content.toLowerCase().includes(client.user.displayName.toLowerCase()) && 
-    //     Math.random() < 0.333)) {
-    //     queue.push(message);
-    //     if (!processingMessageQueue) {
-    //         return await messageQueue();
-    //     }
-    // }
     
     // Ignore all messages if not in a DM or if the bot is not mentioned
     if (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) {

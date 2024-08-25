@@ -140,7 +140,7 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
         if (!url.includes('tenor') && !url.includes('gif')) {
             const isImage = await UtilityLibrary.isImageUrl(url);
             if (isImage) {
-                console.log("image");
+                // console.log("image");
             } else {
                 scrapedURL = await PuppeteerWrapper.scrapeURL(url);
             }

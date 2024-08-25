@@ -29,7 +29,7 @@ const YapperService = {
         `;
 
         for (const yapper of yappers) {
-            systemContent += `- ${yapper.displayName} with ${yapper.posts} recent yaps\n`;
+            systemContent += `- ${yapper.displayName} with ${yapper.count} recent yaps\n`;
         }
         const userContent = `Who are the current top 5 yappers in order?`;
         return await AIService.generateTextFromSystemUserMessages(systemContent, userContent, interaction);
