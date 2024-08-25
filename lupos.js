@@ -247,12 +247,8 @@ async function messageQueue() {
             UtilityLibrary.consoleInfo([[`║ 🌐 Server: ${message.guild.name}`, { color: 'white' }]]);
             UtilityLibrary.consoleInfo([[`║ 📡 Channel: #${message.channel.name}`, { color: 'white' }]]);
         }
-
-        // if text contains the word draw, generate text and image at the same time
         
         const isDrawRequest = ['draw', 'sketch', 'paint', 'image', 'make', 'redo', 'render'].some(substring => message.content.toLowerCase().includes(substring));
-        
-
         let imageToGenerate = message.content;
 
         if (message.content.match(/<@!?\d+>/g)) {
@@ -266,7 +262,6 @@ async function messageQueue() {
                     let member = message.guild.members.cache.get(user.id);
                     let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                     const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
-                    // const textDescription = `<@${userId}> (Username: ${UtilityLibrary.discordUsername(user)}, Visual Description: ${eyes.choices[0].message.content} [Attributes]: ${roles}.)`;
                     const textDescription = 
 `User ID: ${userId}
 Username: ${UtilityLibrary.discordUsername(user)}
@@ -274,7 +269,6 @@ Discord Tag: <@${userId}>
 Visual Description: ${eyes.choices[0].message.content}
 Roles: ${roles}`;
                     imageToGenerate = imageToGenerate.replace(`<@${userId}>`, imageDescription);
-                    // message.content = message.content.replace(`<@${userId}>`, textDescription);
                     message.content = 
 `${textDescription}
                     
@@ -340,10 +334,6 @@ ${message.content}`;
 
 ${message.content}`;
                 }
-                // const eyes = await AIService.generateVision(originalMessageContent, 'Describe this image');
-                // const imageDescription = `${eyes.choices[0].message.content}`;
-                // imageToGenerate = imageToGenerate + ' Original message: ' + imageDescription;
-                // message.content = message.content + ' Original message: ' + imageDescription;
             }
         }
         
