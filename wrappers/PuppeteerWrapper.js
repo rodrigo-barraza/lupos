@@ -121,25 +121,37 @@ const PuppeteerWrapper = {
         return output;
     },
     async scrapeURL(url) {
-        let result;
         const browser = await puppeteer.launch({ headless: true, executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
         const page = await browser.newPage();
         await page.goto(url);
 
-        try {
-            await page.waitForSelector('title', {timeout: 5000});
-            await page.waitForSelector('meta[name="description"]', {timeout: 5000});
-            await page.waitForSelector('meta[name="keywords"]', {timeout: 5000});
-            result = await page.evaluate(() => {
-                const title = document.querySelector('title').textContent.trim();
-                const description = document.querySelector('meta[name="description"]').getAttribute('content');
-                const keywords = document.querySelector('meta[name="keywords"]').getAttribute('content');
-                return { title, description, keywords };
-            });
-        } catch(error) {
-            console.error('Puppeteer Error:\n', error);
-            result = null;
-        }
+        const selectors = [
+            { selector: 'title', property: 'title' },
+            { selector: 'meta[name="description"]', property: 'description' },
+            { selector: 'meta[name="keywords"]', property: 'keywords' },
+            { selector: 'meta[property="og:image"]', property: 'image' },
+          ];
+          
+          const result = {};
+          
+          await Promise.all(
+            selectors.map(async ({ selector, property }) => {
+              try {
+                await page.waitForSelector(selector, { timeout: 5000 });
+          
+                const value = await page.evaluate((s, p) => {
+                  const element = document.querySelector(s);
+                  return element ? element[p] || element.getAttribute('content') : null;
+                }, selector, property);
+          
+                if (value) {
+                  result[property] = value.trim();
+                }
+              } catch (error) {
+                console.error(`Puppeteer Error on ${selector}:\n`, error);
+              }
+            })
+          );
         
         await browser.close();
         UtilityLibrary.consoleInfo([[`║ 🌐 Scraping URL: `, { }], [result, { }]]);
