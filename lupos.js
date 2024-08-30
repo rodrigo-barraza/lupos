@@ -24,6 +24,8 @@ const DiscordWrapper = require('./wrappers/DiscordWrapper.js');
 const AIService = require('./services/AIService.js');
 const YapperService = require('./services/YapperService.js');
 const luxon = require('luxon');
+const { Puppeteer } = require('puppeteer-core');
+const PuppeteerWrapper = require('./wrappers/PuppeteerWrapper.js');
 
 const client = DiscordWrapper.instantiate();
 
@@ -181,14 +183,20 @@ async function autoAssignRoles(client) {
     const channel1 = client.channels.cache.get(WHITEMANE_POLITICS_CHANNEL_ID);
     const guild = client.guilds.cache.get(GUILD_ID_WHITEMANE);
 
-    const allMessages = await Promise.all([
-        channel1.messages.fetch({ limit: 100 })
-    ]);
+    try {
+        const allMessages = await Promise.all([
+            channel1.messages.fetch({ limit: 100 })
+        ]);
     
-    const combinedMessages = allMessages[0]
-
-    await generateOverReactors(combinedMessages, guild);
-    await generateYappers(combinedMessages, guild);
+        if (!allMessages[0]) return;
+    
+        const combinedMessages = allMessages[0];
+    
+        await generateOverReactors(combinedMessages, guild);
+        await generateYappers(combinedMessages, guild);
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 function displayAllGuilds() {
@@ -199,6 +207,58 @@ function displayAllGuilds() {
     });
     let connectedGuildsText = `🌎 Connected Guilds (Servers): ${guildArray.length }`
     UtilityLibrary.consoleInfo([[connectedGuildsText, {}]]);
+}
+
+async function hasImageAttachmentOrUrl(message) {
+    let hasImage = false;
+    const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
+    if (message.attachments.size) {
+        const attachment = message.attachments.first();
+        const isImage = attachment.contentType.includes('image');
+        if (isImage) {
+            hasImage = attachment.url;
+        }
+    } else if (urls?.length) {
+        console.log(urls)
+        const url = urls[0];
+        
+        if (!url.includes('https://tenor.com/view/')) {
+            const isImage = await UtilityLibrary.isImageUrl(url);
+            if (isImage) {
+                hasImage = url;
+            }
+        } else {
+            const tenorImage = await PuppeteerWrapper.scrapeTenor(url);
+            hasImage = tenorImage.image;
+        }
+    }
+    return hasImage;
+}
+
+async function hasImageAttachmentsOrUrls(message) {
+    let images = [];
+    const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
+    if (message.attachments.size) {
+        for (const attachment of message.attachments.values()) {
+            const isImage = attachment.contentType.includes('image');
+            if (isImage) {
+                images.push(attachment.url);
+            }
+        }
+    } else if (urls?.length) {
+        for (const url of urls) {
+            if (!url.includes('https://tenor.com/view/')) {
+                const isImage = await UtilityLibrary.isImageUrl(url);
+                if (isImage) {
+                    images.push(url);
+                }
+            } else {
+                const tenorImage = await PuppeteerWrapper.scrapeTenor(url);
+                images.push(tenorImage.image);
+            }
+        }
+    }
+    return images;
 }
 
 
@@ -251,10 +311,15 @@ async function messageQueue() {
         const isDrawRequest = ['draw', 'sketch', 'paint', 'image', 'make', 'redo', 'render'].some(substring => message.content.toLowerCase().includes(substring));
         let imageToGenerate = message.content;
 
+        // If message contains a user mention, generate a visual description of the user`
         if (message.content.match(/<@!?\d+>/g)) {
             const userIds = message.content.match(/<@!?\d+>/g).map(user => user.replace(/<@!?/, '').replace('>', ''));
+            let currentUser = 0;
             for (const userId of userIds) {
-                if(userId === client.user.id) continue;
+                if (userId === client.user.id) {
+                    continue;
+                }
+                currentUser++;
                 const user = client.users.cache.get(userId);
                 if (user) {
                     const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
@@ -263,11 +328,11 @@ async function messageQueue() {
                     let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                     const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
                     const textDescription = 
-`User ID: ${userId}
-Username: ${UtilityLibrary.discordUsername(user)}
-Discord Tag: <@${userId}>
-Visual Description: ${eyes.choices[0].message.content}
-Roles: ${roles}`;
+`User ${currentUser} mentioned ID: ${userId}
+User ${currentUser} mentioned name: ${UtilityLibrary.discordUsername(user)}
+User ${currentUser} mentioned discord tag: <@${userId}>
+User ${currentUser} mentioned description: ${eyes.choices[0].message.content}
+User ${currentUser} mentioned roles: ${roles}`;
                     imageToGenerate = imageToGenerate.replace(`<@${userId}>`, imageDescription);
                     message.content = 
 `${textDescription}
@@ -278,67 +343,155 @@ ${message.content}`
             }   
         }
 
-        async function hasImageAttachmentOrUrl(message) {
-            let hasImage = false;
-            const urls = message.content.match(/(https?:\/\/[^\s]+)/g);
-            if (message.attachments.size) {
-                const attachment = message.attachments.first();
-                const isImage = attachment.contentType.includes('image');
-                if (isImage) {
-                    hasImage = attachment.url;
-                }
-            } else if (urls?.length) {
-                const url = urls[0];
-                const isImage = await UtilityLibrary.isImageUrl(url);
-                if (isImage) {
-                    hasImage = url;
-                }
+        let drawWords = ['draw ', 'draw me '];
+        drawWords.forEach(substring => {
+            imageToGenerate = imageToGenerate.replace(substring, '');
+        });
+
+        // if message contains an image, generate a visual description of the image
+        let images = await hasImageAttachmentsOrUrls(message);
+        if (images.length > 0) {
+            let currentImage = 0;
+            for (const image of images) {
+                currentImage++;
+                const eyes = await AIService.generateVision(image, 'Describe this image');
+                const imageDescription = `${eyes.choices[0].message.content}`;
+                const textDescription = 
+`Attached image ${currentImage} description: ${eyes.choices[0].message.content}
+Attached image ${currentImage} URL: ${image}`;
+                imageToGenerate = imageToGenerate.replace(image, imageDescription);
+                message.content = `${textDescription}\n\n${message.content}`;
             }
-            return hasImage;
         }
 
-        let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(message);
-
-        if (imageAttachmentOrUrl) {
-            const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
-            const imageDescription = `${eyes.choices[0].message.content}`;
-            imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
-            message.content = 
-`Image attached: ${imageDescription}
-
-${message.content}`;
+        let emojis = message.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
+        if (emojis) {
+            let currentEmoji = 0;
+            for (const emoji of emojis) {
+                currentEmoji++;
+                const emojiId = emoji.split(":").pop().slice(0, -1);
+                const emojiName = emoji.match(/:.+:/g)[0].replace(/:/g, '');
+                const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
+                const eyes = await AIService.generateVision(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
+                const imageDescription = `${emojiName} (${eyes.choices[0].message.content})`;
+                const textDescription = 
+`Emoji ${currentEmoji} name: ${emojiName}
+Emoji ${currentEmoji} description: ${eyes.choices[0].message.content}`;
+                imageToGenerate = imageToGenerate.replace(emoji, imageDescription);
+                message.content = `${textDescription}\n\n${message.content.replace(emoji, emojiName)}`;
+            }
         }
 
-        // if this is a reply to a message, get the original message
+        // if message is a reply, generate a visual description of the original message
         if (message.reference) {
             const originalMessage = await message.channel.messages.fetch(message.reference.messageId);
             if (originalMessage) {
+
+                // if message contains a user mention, generate a visual description of the user`
+                if (originalMessage.content.match(/<@!?\d+>/g)) {
+                    const userIds = originalMessage.content.match(/<@!?\d+>/g).map(user => user.replace(/<@!?/, '').replace('>', ''));
+                    let currentUser = 0;
+                    for (const userId of userIds) {
+                        if (userId === client.user.id) {
+                            continue;
+                        }
+                        currentUser++;
+                        const user = client.users.cache.get(userId);
+                        if (user) {
+                            const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
+                            const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
+                            let member = message.guild.members.cache.get(user.id);
+                            let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
+                            const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
+                            const textDescription =
+`Quoted User ${currentUser} mentioned ID: ${userId}
+Quoted User ${currentUser} mentioned name: ${UtilityLibrary.discordUsername(user)}
+Quoted User ${currentUser} mentioned discord tag: <@${userId}>
+Quoted User ${currentUser} mentioned description: ${eyes.choices[0].message.content}
+Quoted User ${currentUser} mentioned roles: ${roles}`;
+                            if (currentUser === 1) {
+                                let modifiedOriginalMessage = originalMessage.content.replace(`<@${userId}>`, `(${imageDescription})`);
+                                imageToGenerate = `${imageToGenerate}. ${modifiedOriginalMessage}`;
+                            } else {
+                                imageToGenerate = imageToGenerate.replace(`<@${userId}>`, `(${imageDescription})`);
+                            }
+                            message.content =
+`${textDescription}
+
+${message.content}`
+                        }
+                    }
+                }
+
+                console.log('imageToGenerateimageToGenerateimageToGenerate', imageToGenerate)
+
+
+                // if message contains an emoji, generate a visual description of the emoji
+                let emojis = originalMessage.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
+                if (emojis) {
+                    let currentEmoji = 0;
+                    for (const emoji of emojis) {
+                        currentEmoji++;
+                        const emojiId = emoji.split(":").pop().slice(0, -1);
+                        const emojiName = emoji.match(/:.+:/g)[0].replace(/:/g, '');
+                        const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
+                        const eyes = await AIService.generateVision(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
+                        const imageDescription = `${emojiName} (${eyes.choices[0].message.content})`;
+                        const textDescription = 
+        `Quoted Emoji ${currentEmoji} name: ${emojiName}
+        Quoted Emoji ${currentEmoji} description: ${eyes.choices[0].message.content}`;
+                        imageToGenerate = imageToGenerate.replace(emoji, imageDescription);
+                        message.content = `${textDescription}\n\n${message.content.replace(emoji, emojiName)}`;
+                    }
+                }
+
+                // if message contains an image, generate a visual description of the image
+                let images = await hasImageAttachmentsOrUrls(originalMessage);
+                if (images.length > 0) {
+                    let currentImage = 0;
+                    for (const image of images) {
+                        currentImage++;
+                        const eyes = await AIService.generateVision(image, 'Describe this image');
+                        const imageDescription = `${eyes.choices[0].message.content}`;
+                        const textDescription = 
+`Quoted image ${currentImage} description: ${eyes.choices[0].message.content}
+Quoted image ${currentImage} URL: ${image}`;
+                        console.log('image', image);
+                        console.log('imageToGenerate', imageToGenerate);
+                        if (currentImage === 1) {
+                            let modifiedOriginalMessage = originalMessage.content.replace(image, `(${imageDescription})`);
+                            imageToGenerate = `${imageToGenerate}. ${modifiedOriginalMessage}`;
+                        } else {   
+                            imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
+                        }
+                        message.content = `${textDescription}\n\n${message.content}`;
+                    }
+                }
+
                 const username = UtilityLibrary.discordUsername(originalMessage.author);
                 const userId = UtilityLibrary.discordUserId(originalMessage);
                 const originalMessageContent = originalMessage.content;
-                imageToGenerate = `${imageToGenerate} Replying to message by <@${userId}> (${username}): ${originalMessageContent}`;
+                imageToGenerate = `${imageToGenerate}.`;
                 message.content =
-`Quote User ID: <@${userId}>
-Quote Username: ${username}
-Quote Discord Tag: <@${userId}>
-Quote Message: ${originalMessageContent}
+`Quoted User ID: ${userId}
+Quoted Username: ${username}
+Quoted Discord Tag: <@${userId}>
+Quoted Message: ${originalMessageContent}
 
 ${message.content}`;
-                let imageAttachmentOrUrl = await hasImageAttachmentOrUrl(originalMessage);
-                if (imageAttachmentOrUrl) {
-                    const eyes = await AIService.generateVision(imageAttachmentOrUrl, 'Describe this image');
-                    const imageDescription = `${eyes.choices[0].message.content}`;
-                    imageToGenerate = imageToGenerate + ' Image attached: ' + imageDescription;
-                    message.content =
-`Quote attached image: ${imageDescription}
-
-${message.content}`;
-                }
             }
         }
+
         
-        console.log(1234567890)
+        // clean up image prompt
+        imageToGenerate = imageToGenerate.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '');
+        
+        console.log('============= TEXT INPUT START =============')
         console.log(message.content)
+        console.log('============= TEXT INPUT END =============')
+        console.log('============= IMAGE INPUT START =============')
+        console.log(imageToGenerate)
+        console.log('============= IMAGE INPUT END =============')
         if (isDrawRequest && GENERATE_IMAGE) {
             const finalResults = await Promise.all([
                 AIService.generateText({message}),

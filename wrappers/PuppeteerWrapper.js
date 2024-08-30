@@ -157,6 +157,44 @@ const PuppeteerWrapper = {
         UtilityLibrary.consoleInfo([[`║ 🌐 Scraping URL: `, { }], [result, { }]]);
         return result;
     },
+    async scrapeTenor(url) {
+        const browser = await puppeteer.launch({ headless: true, executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });
+        const page = await browser.newPage();
+        await page.goto(url);
+
+        const selectors = [
+            { selector: 'title', property: 'title' },
+            { selector: 'meta[itemprop="contentUrl"]', property: 'image' },
+            { selector: 'meta[itemprop="keywords"]', property: 'keywords' },
+        ];
+          
+        const result = {};
+          
+        await Promise.all(
+            selectors.map(async ({ selector, property }) => {
+            try {
+                await page.waitForSelector(selector, { timeout: 5000 });
+        
+                const value = await page.evaluate((s, p) => {
+                const element = document.querySelector(s);
+                return element ? element[p] || element.getAttribute('content') : null;
+                }, selector, property);
+        
+                if (value) {
+                result[property] = value.trim();
+                }
+            } catch (error) {
+                console.error(`Puppeteer Error on ${selector}:\n`, error);
+            }
+            })
+        );
+
+        result.name = url.replace('https://tenor.com/view/', '').replace(/-/g, ' ').replace(/%20/g, ' ');
+        
+        await browser.close();
+        UtilityLibrary.consoleInfo([[`║ 🌐 Scraping Tenor URL: `, { }], [result, { }]]);
+        return result;
+    },
     async scrapeGoogleAlerts(searchText) {
         let result;
         const browser = await puppeteer.launch({ headless: true, product: "chrome", executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] });

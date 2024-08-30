@@ -375,13 +375,7 @@ const AIService = {
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
                 const randomText = [
-                    `Always include: A speech bubble that says: "${username}".`,
-                    `Always include: Holding a sign that says: "${username}".`,
-                    `Always include: Shirt with text that says: "${username}".`,
-                    `Always include: Wall in the back with: "${username}" written.`,
-                    `Always include: A whiteboard with: "${username}" written.`,
-                    `Always include: A balloon with: "${username}" written.`,
-                    `Always include: A pokemon card of: "${username}".`,
+                    `Always include written text that fits the theme of the image that says: "${username}".`,
                 ]
                 const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
                 let conversation = [
