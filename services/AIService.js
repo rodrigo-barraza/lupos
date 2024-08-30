@@ -390,7 +390,8 @@ const AIService = {
 
                             ${pickRandomText}
                             
-                            Keep as much original details as possible.
+                            Keep as much original details as possible. Do not include any additional text besides the prompt.
+                            Do not make self-referential comments or break the fourth wall.
     
                             ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
                         `
