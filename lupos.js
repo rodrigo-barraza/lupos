@@ -466,18 +466,13 @@ ${message.content}`
                         const textDescription = 
 `Quoted image ${currentImage} description: ${eyes.choices[0].message.content}
 Quoted image ${currentImage} URL: ${image}`;
-                        if (currentImage === 1) {
-                            let modifiedOriginalMessage = originalMessage.content.replace(image, `(${imageDescription})`);
-                            imageToGenerate = `${imageToGenerate}. ${modifiedOriginalMessage}`;
+                        if (imageToGenerate.includes(image)) {
+                            imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
                         } else {
-                            if (imageToGenerate.includes(image)) {
-                                imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
+                            if (imageToGenerate.length > 0) {
+                                imageToGenerate = `${imageToGenerate}. (${imageDescription})`;
                             } else {
-                                if (imageToGenerate.length > 0) {
-                                    imageToGenerate = `${imageToGenerate}. (${imageDescription})`;
-                                } else {
-                                    imageToGenerate = `(${imageDescription})`;
-                                }
+                                imageToGenerate = `(${imageDescription})`;
                             }
                         }
                         message.content = `${textDescription}\n\n${message.content}`;
