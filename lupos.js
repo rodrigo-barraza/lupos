@@ -307,9 +307,10 @@ async function messageQueue() {
             UtilityLibrary.consoleInfo([[`║ 🌐 Server: ${message.guild.name}`, { color: 'white' }]]);
             UtilityLibrary.consoleInfo([[`║ 📡 Channel: #${message.channel.name}`, { color: 'white' }]]);
         }
-        
         const isDrawRequest = ['draw', 'sketch', 'paint', 'image', 'make', 'redo', 'render'].some(substring => message.content.toLowerCase().includes(substring));
         let imageToGenerate = message.content;
+        // clean up image prompt
+        imageToGenerate = imageToGenerate.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '');
 
         // If message contains a user mention, generate a visual description of the user`
         if (message.content.match(/<@!?\d+>/g)) {
@@ -359,7 +360,16 @@ ${message.content}`
                 const textDescription = 
 `Attached image ${currentImage} description: ${eyes.choices[0].message.content}
 Attached image ${currentImage} URL: ${image}`;
-                imageToGenerate = imageToGenerate.replace(image, imageDescription);
+                // if image exists in imageToGenerate, replace it with the description
+                if (imageToGenerate.includes(image)) {
+                    imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
+                } else {
+                    if (imageToGenerate.length > 0) {
+                        imageToGenerate = `${imageToGenerate}. (${imageDescription})`;
+                    } else {
+                        imageToGenerate = `(${imageDescription})`;
+                    }
+                }
                 message.content = `${textDescription}\n\n${message.content}`;
             }
         }
@@ -456,13 +466,19 @@ ${message.content}`
                         const textDescription = 
 `Quoted image ${currentImage} description: ${eyes.choices[0].message.content}
 Quoted image ${currentImage} URL: ${image}`;
-                        console.log('image', image);
-                        console.log('imageToGenerate', imageToGenerate);
                         if (currentImage === 1) {
                             let modifiedOriginalMessage = originalMessage.content.replace(image, `(${imageDescription})`);
                             imageToGenerate = `${imageToGenerate}. ${modifiedOriginalMessage}`;
-                        } else {   
-                            imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
+                        } else {
+                            if (imageToGenerate.includes(image)) {
+                                imageToGenerate = imageToGenerate.replace(image, `(${imageDescription})`);
+                            } else {
+                                if (imageToGenerate.length > 0) {
+                                    imageToGenerate = `${imageToGenerate}. (${imageDescription})`;
+                                } else {
+                                    imageToGenerate = `(${imageDescription})`;
+                                }
+                            }
                         }
                         message.content = `${textDescription}\n\n${message.content}`;
                     }
@@ -481,10 +497,6 @@ Quoted Message: ${originalMessageContent}
 ${message.content}`;
             }
         }
-
-        
-        // clean up image prompt
-        imageToGenerate = imageToGenerate.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '');
         
         console.log('============= TEXT INPUT START =============')
         console.log(message.content)
@@ -539,7 +551,7 @@ ${message.content}`;
             if (GENERATE_IMAGE) {
                 const finalResults = await Promise.all([
                     AIService.generateText({message}),
-                    AIService.generateImage(message, message.content)
+                    AIService.generateImage(message, imageToGenerate)
                 ]);
     
                 generatedResponse = finalResults[0];
