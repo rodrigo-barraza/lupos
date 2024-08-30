@@ -115,7 +115,7 @@ async function generateOverReactors(combinedMessages, guild) {
                 await membersWithRole.forEach(member => member.roles.remove(overReactorRole));
                 currentOverReactor.roles.add(overReactorRole);
                 previousOverReactorId = currentOverReactor.id;
-                UtilityLibrary.consoleInfo([[`║ 🤯 ${currentOverReactor.displayName} has been given the role ${overReactorRole.name}`, { color: 'red' }]]);
+                UtilityLibrary.consoleInfo([[`║ 🤯 ${currentOverReactor.displayName} has been given the role ${overReactorRole.name}`, { color: 'orange' }]]);
             }
         } else {
             const overreactorRole = guild.roles.cache.find(role => role.id === overReactorRoleId);
@@ -162,7 +162,7 @@ async function generateYappers(combinedMessages, guild) {
         await membersWithYapperRole.forEach(member => member.roles.remove(yapperRole));
         topAuthor.roles.add(yapperRole);
         previousTopAuthorId = topAuthor.id;
-        UtilityLibrary.consoleInfo([[`║ 🤌 ${topAuthor.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
+        UtilityLibrary.consoleInfo([[`║ 🤌 ${topAuthor.displayName} has been given the role ${yapperRole.name}`, { color: 'orange' }]]);
     }
 
     const currentYappers = YapperService.getYappers();
@@ -344,6 +344,27 @@ ${message.content}`
             }   
         }
 
+        // If message contains the word 'me', generate a visual description of the user
+        // 'me' has to be its own word, not part of another word
+        if (message.content.match(/(\bme\b)/g)) {
+            const user = message.author;
+            const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
+            const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
+            let member = message.guild.members.cache.get(user.id);
+            let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
+            const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
+            const textDescription =
+`User mentioned name: ${UtilityLibrary.discordUsername(user)}
+User mentioned discord tag: <@${user.id}>
+User mentioned description: ${eyes.choices[0].message.content}
+User mentioned roles: ${roles}`;
+            imageToGenerate = imageToGenerate.replace('me', imageDescription);
+            message.content =
+`${textDescription}
+
+${message.content}`
+        }
+        
         let drawWords = ['draw ', 'draw me '];
         drawWords.forEach(substring => {
             imageToGenerate = imageToGenerate.replace(substring, '');

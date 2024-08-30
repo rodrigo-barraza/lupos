@@ -332,7 +332,7 @@ const AIService = {
     },
     async generateText({ message, type, performance, tokens }) {
         UtilityLibrary.consoleInfo([[`║ 📑 Text: generation started`, { color: 'yellow' }]]);
-        UtilityLibrary.consoleInfo([[`║ 🖼️ Text prompt: ${message.content}`, { color: 'yellow' }]]);
+        UtilityLibrary.consoleInfo([[`║ 🖼️ Text prompt:\n${message.content}`, { color: 'blue' }]]);
         try {
             const client = DiscordWrapper.getClient();
             DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
@@ -370,9 +370,10 @@ const AIService = {
             let textToDraw;
             let generatedImage;
             const draw = ['draw', 'sketch', 'paint', 'make', 'redo', 'redraw'].some(substring => message.content.toLowerCase().includes(substring));
-            if (draw) {
+            // if (draw) {
+            if (false) {
                 textToDraw = text.replace(/.*?(draw|sketch|paint|make|redo|redraw) /i, '');
-                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt: ${text}`, { color: 'blue' }]]);
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt:\n${text}`, { color: 'blue' }]]);
                 generatedImage = await generateImage(text);
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
@@ -380,16 +381,16 @@ const AIService = {
                     `Always include written text that fits the theme of the image that says: "${username}".`,
                 ]
                 const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
-                UtilityLibrary.consoleInfo([[`║ 🖼️ Image message content: ${message.content}`, { color: 'yellow' }]]);
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image message content:\n${message.content}`, { color: 'blue' }]]);
                 let conversation = [
                     {
                         role: 'system',
                         content: `
-                            # Purpose: Text-to-Image Prompt Generator
-                            You generate text-to-image prompts for tools such as stable diffusion, midjourney, and other related platforms.
+                            You are an expert at describing visual pieces of art, images, photographs, etc. You are a pro at generating text-to-image prompts for text-to-image models. You will generate a prompt for an image based on the text that is given to you. The text that is given to you is: "${message.content}".
+
                             ${pickRandomText}
                             
-                            Keep the prompt short and under 2 sentences. Make sure the prompt is clear and concise.
+                            Keep as much original details as possible.
     
                             ${MessageService.generateServerSpecificMessage(message.guild?.id)}\n
                         `
@@ -407,7 +408,7 @@ const AIService = {
                     UtilityLibrary.consoleInfo([[`║ 🖼️ Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }]]);
                     responseContentText = text ? text : message.content;
                 }
-                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt: ${responseContentText}`, { color: 'green' }]]);
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt:\n${responseContentText}`, { color: 'blue' }]]);
                 generatedImage = await generateImage(responseContentText);
             }
             UtilityLibrary.consoleInfo([[`║ 🖼️ Image: generation successful`, { color: 'green' }]]);
