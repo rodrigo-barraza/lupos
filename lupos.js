@@ -115,7 +115,7 @@ async function generateOverReactors(combinedMessages, guild) {
                 await membersWithRole.forEach(member => member.roles.remove(overReactorRole));
                 currentOverReactor.roles.add(overReactorRole);
                 previousOverReactorId = currentOverReactor.id;
-                UtilityLibrary.consoleInfo([[`🤯 ${currentOverReactor.displayName} has been given the role ${overReactorRole.name}`, { color: 'red' }]]);
+                UtilityLibrary.consoleInfo([[`║ 🤯 ${currentOverReactor.displayName} has been given the role ${overReactorRole.name}`, { color: 'red' }]]);
             }
         } else {
             const overreactorRole = guild.roles.cache.find(role => role.id === overReactorRoleId);
@@ -162,7 +162,7 @@ async function generateYappers(combinedMessages, guild) {
         await membersWithYapperRole.forEach(member => member.roles.remove(yapperRole));
         topAuthor.roles.add(yapperRole);
         previousTopAuthorId = topAuthor.id;
-        UtilityLibrary.consoleInfo([[`🤌 ${topAuthor.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
+        UtilityLibrary.consoleInfo([[`║ 🤌 ${topAuthor.displayName} has been given the role ${yapperRole.name}`, { color: 'red' }]]);
     }
 
     const currentYappers = YapperService.getYappers();
@@ -433,9 +433,6 @@ ${message.content}`
                     }
                 }
 
-                console.log('imageToGenerateimageToGenerateimageToGenerate', imageToGenerate)
-
-
                 // if message contains an emoji, generate a visual description of the emoji
                 let emojis = originalMessage.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
                 if (emojis) {
@@ -492,13 +489,7 @@ Quoted Message: ${originalMessageContent}
 ${message.content}`;
             }
         }
-        
-        console.log('============= TEXT INPUT START =============')
-        console.log(message.content)
-        console.log('============= TEXT INPUT END =============')
-        console.log('============= IMAGE INPUT START =============')
-        console.log(imageToGenerate)
-        console.log('============= IMAGE INPUT END =============')
+
         if (isDrawRequest && GENERATE_IMAGE) {
             const finalResults = await Promise.all([
                 AIService.generateText({message}),

@@ -332,6 +332,7 @@ const AIService = {
     },
     async generateText({ message, type, performance, tokens }) {
         UtilityLibrary.consoleInfo([[`║ 📑 Text: generation started`, { color: 'yellow' }]]);
+        UtilityLibrary.consoleInfo([[`║ 🖼️ Text prompt: ${message.content}`, { color: 'yellow' }]]);
         try {
             const client = DiscordWrapper.getClient();
             DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
@@ -371,6 +372,7 @@ const AIService = {
             const draw = ['draw', 'sketch', 'paint', 'make', 'redo', 'redraw'].some(substring => message.content.toLowerCase().includes(substring));
             if (draw) {
                 textToDraw = text.replace(/.*?(draw|sketch|paint|make|redo|redraw) /i, '');
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt: ${text}`, { color: 'blue' }]]);
                 generatedImage = await generateImage(text);
             } else {
                 const username = UtilityLibrary.discordUsername(message.author || message.member);
@@ -378,6 +380,7 @@ const AIService = {
                     `Always include written text that fits the theme of the image that says: "${username}".`,
                 ]
                 const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image message content: ${message.content}`, { color: 'yellow' }]]);
                 let conversation = [
                     {
                         role: 'system',
@@ -401,9 +404,10 @@ const AIService = {
                 let responseContentText = response;
                 let notCapable = await generateNotCapableResponseCheck(message, responseContentText);
                 if (notCapable.toLowerCase() === 'yes') {
+                    UtilityLibrary.consoleInfo([[`║ 🖼️ Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }]]);
                     responseContentText = text ? text : message.content;
                 }
-                // UtilityLibrary.consoleInfo([[`║ 📑 Image: `, { }], [{ prompt: responseContentText }, { }]]);
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image prompt: ${responseContentText}`, { color: 'green' }]]);
                 generatedImage = await generateImage(responseContentText);
             }
             UtilityLibrary.consoleInfo([[`║ 🖼️ Image: generation successful`, { color: 'green' }]]);
