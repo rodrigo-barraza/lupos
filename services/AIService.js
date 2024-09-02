@@ -348,9 +348,9 @@ const AIService = {
             let generatedText = await generateText({ conversation, type, performance, tokens });
 
             let notCapable = await generateNotCapableResponseCheck(message, generatedText);
-            if (notCapable.toLowerCase() === 'yes') {
+            if (notCapable.toLowerCase() === 'yes' && imagePrompt) {
                 UtilityLibrary.consoleInfo([[`║ 🖼️ Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }]]);
-                generatedText = text ? text : message.content;
+                generatedText = imagePrompt;
             }
             
             UtilityLibrary.consoleInfo([[`║ 📑 Text: generation successful`, { color: 'green' }]]);
