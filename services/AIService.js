@@ -345,7 +345,14 @@ const AIService = {
             // const news = await AIService.generateGoogleNews(message);
             const news = '';
             const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt);
-            const generatedText = await generateText({ conversation, type, performance, tokens });
+            let generatedText = await generateText({ conversation, type, performance, tokens });
+
+            let notCapable = await generateNotCapableResponseCheck(message, generatedText);
+            if (notCapable.toLowerCase() === 'yes') {
+                UtilityLibrary.consoleInfo([[`║ 🖼️ Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }]]);
+                generatedText = text ? text : message.content;
+            }
+            
             UtilityLibrary.consoleInfo([[`║ 📑 Text: generation successful`, { color: 'green' }]]);
             // const bannedWordsRegex = /:\w+:|beaner|[c0245][0-9]on|chink|f[\s.@]a[g]{1,2}[oi0]{1,2}t|m(?:[7-9]|10)g(?:[7-9]|10)t|f(?:[7-9]|10)g(?:[7-9]|10)|[gf][ao]int[rt]|fgt{2,3}rtd|fgt{2,3}|froc[i1]{2}aggine|g[0o]{2}k|honkey|https:\/\/imgur.com\/aRYkT2C|kike|kys|n![1ig]{1,3}3r|n!g{1,2}er|ni🅱️ 🅱️ a|ni[bg]{1,3}a|[ng][i1][g]{1,2}3r|n[ig]{3}a|[n3][i1][g6]{1,2}[3e]?[r]?|n[ig]{3}let|spic|tran{2,3}[iy]{1,2}|wetback|www.wowgoldgo.com/gi;
             // if (generatedText.match(bannedWordsRegex)) {
@@ -388,7 +395,7 @@ const AIService = {
                 content: `Make a prompt based on this: ${message.content}`,
             }
         ]
-        const imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+        let imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
         if (notCapable.toLowerCase() === 'yes') {
             UtilityLibrary.consoleInfo([[`║ 🖼️ Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }]]);
