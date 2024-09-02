@@ -175,9 +175,12 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
 - ID: ${client.user.id}.
 - Traits: ${roles}.
 
+${imagePrompt ? `# Image That You Generated and Drew` : ''}
+${imagePrompt ? `- Description: (${imagePrompt})` : ''}
+
 ${news}
 
-# URL Information
+${scrapedURL ? `# URL Information` : ''}
 ${scrapedURL ? `## ${urls[0]}.` : ''}
 ${scrapedURL ? `- Title: ${scrapedURL.title}.` : ''}
 ${scrapedURL ? `- Description: ${scrapedURL.description}.` : ''}

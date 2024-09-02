@@ -520,8 +520,6 @@ ${message.content}`;
             const finalResults = await Promise.all([
                 AIService.generateText({message}, imagePrompt),
                 AIService.generateImage2(imagePrompt)
-                // AIService.generateText({message}),
-                // AIService.generateImage(message, imageToGenerate)
             ]);
 
             generatedResponse = finalResults[0];
