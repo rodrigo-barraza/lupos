@@ -510,22 +510,15 @@ Quoted Message: ${originalMessageContent}
 ${message.content}`;
             }
         }
-            
-        const imagePrompt = await AIService.prepareGenerateImagePrompt(message, imageToGenerate)
-        let generatedResponse;
+        let imagePrompt = await AIService.prepareGenerateImagePrompt(message, imageToGenerate);
+        let generatedResponse = await AIService.generateText({message}, imagePrompt);
         let generatedImage;
-        
 
         if (GENERATE_IMAGE) {
             const finalResults = await Promise.all([
-                AIService.generateText({message}, imagePrompt),
-                AIService.generateImage2(imagePrompt)
+                AIService.generateImage2(imagePrompt, generatedResponse)
             ]);
-
-            generatedResponse = finalResults[0];
-            generatedImage = finalResults[1];
-        } else {
-            generatedResponse = await AIService.generateText({message});
+            generatedImage = finalResults[0];
         }
     
         if (!generatedResponse) {
