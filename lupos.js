@@ -106,7 +106,7 @@ async function generateOverReactors(combinedMessages, guild) {
         
         mostCommonOverReactor = userIds.reduce((acc, user) => (user.count > acc.count ? user : acc), userIds[0]);
 
-        if (mostCommonOverReactor.count > 4) {
+        if (mostCommonOverReactor?.count > 4) {
             const overReactorRole = guild.roles.cache.find(role => role.id === overReactorRoleId);
             const currentOverReactor = await guild.members.fetch(mostCommonOverReactor.id);
     
@@ -510,125 +510,85 @@ Quoted Message: ${originalMessageContent}
 ${message.content}`;
             }
         }
+            
+        const imagePrompt = await AIService.prepareGenerateImagePrompt(message, imageToGenerate)
+        let generatedResponse;
+        let generatedImage;
+        
 
-        if (isDrawRequest && GENERATE_IMAGE) {
+        if (GENERATE_IMAGE) {
             const finalResults = await Promise.all([
-                AIService.generateText({message}),
-                AIService.generateImage(message, imageToGenerate)
+                AIService.generateText({message}, imagePrompt),
+                AIService.generateImage2(imagePrompt)
+                // AIService.generateText({message}),
+                // AIService.generateImage(message, imageToGenerate)
             ]);
-            const generatedResponse = finalResults[0];
-            const generatedImage = finalResults[1];
-        
-            let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
-    
-            // replace @here and @everyone with here and everyone
-            responseMessage = responseMessage
-                                .replace(/@here/g, '꩜here')
-                                .replace(/@everyone/g, '꩜everyone')
-                                .replace(/@horde/g, '꩜horde')
-                                .replace(/@alliance/g, '꩜alliance')
-                                .replace(/@alliance/g, '꩜alliance')
-                                .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
-                                .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
-                                .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
-                                .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
-            
-    
-            const messageChunkSizeLimit = 2000;
-            for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
-                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-                clearInterval(sendTypingInterval);
-                let messageReplyOptions = { content: chunk };
-                let files = [];
-                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                    files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
-                }
-                messageReplyOptions = { ...messageReplyOptions, files: files};
-                await message.reply(messageReplyOptions);
-            }
-            lastMessageSentTime = luxon.DateTime.now().toISO();
-            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
-            timerInterval.unref();
-            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
-        } else {
-            let generatedResponse;
-            let generatedImage;
-            
-    
-            if (GENERATE_IMAGE) {
-                const finalResults = await Promise.all([
-                    AIService.generateText({message}),
-                    AIService.generateImage(message, imageToGenerate)
-                ]);
-    
-                generatedResponse = finalResults[0];
-                generatedImage = finalResults[1];
-            } else {
-                generatedResponse = await AIService.generateText({message});
-            }
-        
-            if (!generatedResponse) {
-                UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
-                timerInterval.unref();
-                UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'red' }]]);
-                message.reply("...");
-                return;
-            }
-    
-            
-        
-            let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
-    
-            // replace @here and @everyone with here and everyone
-            responseMessage = responseMessage
-                                .replace(/@here/g, '꩜here')
-                                .replace(/@everyone/g, '꩜everyone')
-                                .replace(/@horde/g, '꩜horde')
-                                .replace(/@alliance/g, '꩜alliance')
-                                .replace(/@alliance/g, '꩜alliance')
-                                .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
-                                .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
-                                .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
-                                .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
-    
-            //  replace <@!1234567890> with the user's display name
-            const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
-                const id = match.replace(/<@!?/, '').replace('>', '');
-                return UtilityLibrary.findUserById(client, id);
-            }).substring(0, 220);
-    
-            
-            let generatedAudioFile, generatedAudioBuffer;
 
-            if (GENERATE_VOICE) { 
-                UtilityLibrary.consoleInfo([[`║ 🎤 Generating voice...`, { color: 'yellow' }]]);
-                ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt))
-                UtilityLibrary.consoleInfo([[`║ 🎤 ... voice generated.`, { color: 'green' }]]);
-            }
+            generatedResponse = finalResults[0];
+            generatedImage = finalResults[1];
+        } else {
+            generatedResponse = await AIService.generateText({message});
+        }
     
-            const messageChunkSizeLimit = 2000;
-            for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
-                const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
-                clearInterval(sendTypingInterval);
-                let messageReplyOptions = { content: chunk };
-                let files = [];
-                if (generatedAudioFile && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                    files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudioFile}`), name: `${generatedAudioFile}` });
-                }
-                if (generatedAudioBuffer && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                    files.push({ attachment: Buffer.from(generatedAudioBuffer, 'base64'), name: 'lupos.mp3' });
-                }
-                if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
-                    files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
-                }
-                messageReplyOptions = { ...messageReplyOptions, files: files};
-                await message.reply(messageReplyOptions);
-            }
-            lastMessageSentTime = luxon.DateTime.now().toISO();
-            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
+        if (!generatedResponse) {
+            UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [{ prompt: timer }, { }]]);
             timerInterval.unref();
-            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
-        }    
+            UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'red' }]]);
+            message.reply("...");
+            return;
+        }
+    
+        let responseMessage = `${generatedResponse.replace(new RegExp(`<@${client.user.id}>`, 'g'), '').replace(new RegExp(`@${client.user.tag}`, 'g'), '')}`;
+
+        // replace @here and @everyone with here and everyone
+        responseMessage = responseMessage
+                            .replace(/@here/g, '꩜here')
+                            .replace(/@everyone/g, '꩜everyone')
+                            .replace(/@horde/g, '꩜horde')
+                            .replace(/@alliance/g, '꩜alliance')
+                            .replace(/@alliance/g, '꩜alliance')
+                            .replace(/@Guild Leader - Horde/g, '꩜Guild Leader - Horde')
+                            .replace(/@Guild Leader - Alliance/g, '꩜Guild Leader - Alliance')
+                            .replace(/@Guild Officer - Horde/g, '꩜Guild Officer - Horde')
+                            .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
+
+        //  replace <@!1234567890> with the user's display name
+        const voicePrompt = responseMessage.replace(/<@!?\d+>/g, (match) => {
+            const id = match.replace(/<@!?/, '').replace('>', '');
+            return UtilityLibrary.findUserById(client, id);
+        }).substring(0, 220);
+
+        
+        let generatedAudioFile, generatedAudioBuffer;
+
+        if (GENERATE_VOICE) { 
+            UtilityLibrary.consoleInfo([[`║ 🎤 Generating voice...`, { color: 'yellow' }]]);
+            ({ filename: generatedAudioFile, buffer: generatedAudioBuffer } = await AIService.generateVoice(message, voicePrompt))
+            UtilityLibrary.consoleInfo([[`║ 🎤 ... voice generated.`, { color: 'green' }]]);
+        }
+
+        const messageChunkSizeLimit = 2000;
+        for (let i = 0; i < responseMessage.length; i += messageChunkSizeLimit) {
+            const chunk = responseMessage.substring(i, i + messageChunkSizeLimit);
+            clearInterval(sendTypingInterval);
+            let messageReplyOptions = { content: chunk };
+            let files = [];
+            if (generatedAudioFile && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                files.push({ attachment: await fs.promises.readFile(`${BARK_VOICE_FOLDER}/${generatedAudioFile}`), name: `${generatedAudioFile}` });
+            }
+            if (generatedAudioBuffer && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                files.push({ attachment: Buffer.from(generatedAudioBuffer, 'base64'), name: 'lupos.mp3' });
+            }
+            if (generatedImage && (i + messageChunkSizeLimit >= responseMessage.length)) {
+                files.push({ attachment: Buffer.from(generatedImage, 'base64'), name: 'lupos.png' });
+            }
+            messageReplyOptions = { ...messageReplyOptions, files: files};
+            await message.reply(messageReplyOptions);
+        }
+        lastMessageSentTime = luxon.DateTime.now().toISO();
+        UtilityLibrary.consoleInfo([[`║ ⏱️ Duration: `, { }], [`${timer} seconds`, { }]]);
+        timerInterval.unref();
+        UtilityLibrary.consoleInfo([[`╚═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════╝`, { color: 'green' }]]);
     }
     MoodService.instantiate();
     processingMessageQueue = false;    
