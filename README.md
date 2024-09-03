@@ -9,6 +9,8 @@ Take response of what the image is, combine it for the response, as currently it
 Make Lupos see itself when tagged twice
 When replying to Lupos to "try again", generate prompt from the original message Lupos is replying to
 
+ADD TIME PER POST
+
 
 Remove the word "draw" or replace with imagine
 

@@ -39,13 +39,13 @@ const UtilityLibrary = {
         return moment(date).fromNow();  
     },
     consoleInfo(messages) {
-        const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']; // Define more as needed
+        const colorCodes = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'orange']; // Define more as needed
         const resetStyle = "\x1b[0m";
 
         // print current time as 1:23:45PM
-        const currentTime = luxon.DateTime.now().toFormat('h:mm:ss a');
+        const currentTime = luxon.DateTime.now().toFormat('h:mm:ss:SSS a');
         
-        const formattedMessages = messages.map(([message, { bold, faint, italic, underline, slowBlink, rapidBlink, crossedOut, doubleUnderline, superscript, subscript, color } = {}]) => {
+        const formattedMessages = messages.map(([message, { bold, faint, italic, underline, slowBlink, rapidBlink, crossedOut, doubleUnderline, superscript, subscript, color }, position = {}]) => {
             const colorIndex = color && colorCodes.includes(color.toLowerCase()) ? colorCodes.indexOf(color.toLowerCase()) + 30 : '';
             const colorCode = color ? `;${colorIndex}` : '';
             const styleCodes = [
@@ -61,11 +61,21 @@ const UtilityLibrary = {
                 subscript ? '74' : '',
             ].filter(code => code).join(';');
             const style = `\x1b[${styleCodes}${colorCode}m`;
+
+            // position can be 'start', 'middle', 'end'
+            // for start return ╔
+            // for middle return ║
+            // for end return ╚
+            const positionCodes = {
+                start: '╔',
+                middle: '║',
+                end: '╚',
+            };
     
             if (typeof message === 'object') {
                 return [style, message, resetStyle];
             } else {
-                return `${currentTime} - ${style}${message}${resetStyle}`;
+                return `${currentTime} - ${positionCodes[position] ? positionCodes[position] : ''}${style}${message}${resetStyle}`;
             }
         });
     
