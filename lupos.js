@@ -190,15 +190,24 @@ function removeMentions(text) {
 async function processUserMentions(client, messageToCheck, message, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
-    if (messageToCheck.content.match(/<@!?\d+>/g)) {
-        const userIds = messageToCheck.content.match(/<@!?\d+>/g).map(user => user.replace(/<@!?/, '').replace('>', ''));
+    let messageToCheckHasMentions = returnMessageContent.match(/<@!?\d+>/g);
+    let messageHasMentions = message.content.match(/<@!?\d+>/g);
+    if (messageToCheckHasMentions.length || messageHasMentions.length) {
+        const userIdsInMessage = messageHasMentions.map(user => user.replace(/<@!?/, '').replace('>', ''));
+        console.log(111111, userIdsInMessage)
+        const userIdsInMessageToCheck = messageToCheckHasMentions.map(user => user.replace(/<@!?/, '').replace('>', ''));
+        console.log(222222, userIdsInMessageToCheck)
+        const combinedUserIds = [...new Set([...userIdsInMessage, ...userIdsInMessageToCheck])];
+        console.log(333333, combinedUserIds)
         let currentUser = 0;
-        for (const userId of userIds) {
+        for (const userId of combinedUserIds) {
             if (userId === client.user.id) {
                 continue;
             }
+            console.log(4444444, userId)
             currentUser++;
             const user = client.users.cache.get(userId);
+            console.log(5555555, user)
             if (user) {
                 const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
                 const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
@@ -206,12 +215,11 @@ async function processUserMentions(client, messageToCheck, message, imageToGener
                 let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                 const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
                 const textDescription = 
-`User ${currentUser} mentioned ID: ${userId}
-User ${currentUser} mentioned name: ${UtilityLibrary.discordUsername(user)}
+`User ${currentUser} mentioned name: ${UtilityLibrary.discordUsername(user)}
 User ${currentUser} mentioned discord tag: <@${userId}>
 User ${currentUser} mentioned description: ${eyes.choices[0].message.content}
 User ${currentUser} mentioned roles: ${roles}`;
-                returnImagePrompt = imageToGenerate.replace(`<@${userId}>`, imageDescription);
+                returnImagePrompt = returnImagePrompt.replace(`<@${userId}>`, imageDescription);
                 returnMessageContent = 
 `${textDescription}
                 
@@ -220,6 +228,7 @@ ${returnMessageContent}`
             }
         }   
     }
+    console.log(666666, returnImagePrompt)
     return { returnImagePrompt, returnMessageContent };
 }
 
@@ -251,7 +260,7 @@ ${returnMessageContent}`
 async function processEmojis(messageToCheck, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
-    let emojis = messageToCheck.content.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
+    let emojis = returnMessageContent.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
     if (emojis) {
         let currentEmoji = 0;
         for (const emoji of emojis) {
@@ -307,23 +316,22 @@ async function processReply(client, message, imageToGenerate) {
     let returnMessageContent = message.content;
     if (message.reference) {
         const originalMessage = await message.channel.messages.fetch(message.reference.messageId);
+        returnMessageContent = originalMessage.content;
         if (originalMessage) {
-
-            ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processUserMentions(client, originalMessage, message, imageToGenerate));  
-            ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processEmojis(originalMessage, imageToGenerate));
-            ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processImageAttachmentsAndUrls(originalMessage, imageToGenerate));
+            ({ returnImagePrompt: imageToGenerate, returnMessageContent: originalMessage.content } = await processUserMentions(client, originalMessage, message, imageToGenerate));
+            ({ returnImagePrompt: imageToGenerate, returnMessageContent: originalMessage.content } = await processEmojis(originalMessage, imageToGenerate));
+            ({ returnImagePrompt: imageToGenerate, returnMessageContent: originalMessage.content } = await processImageAttachmentsAndUrls(originalMessage, imageToGenerate));
 
             const username = UtilityLibrary.discordUsername(originalMessage.author);
             const userId = UtilityLibrary.discordUserId(originalMessage);
             const originalMessageContent = originalMessage.content;
             returnImagePrompt = `${imageToGenerate}.`;
             returnMessageContent =
-`Quoted User ID: ${userId}
-Quoted Username: ${username}
+`Quoted Username: ${username}
 Quoted Discord Tag: <@${userId}>
 Quoted Message: ${originalMessageContent}
 
-${message.content}`;
+${returnMessageContent}`;
             UtilityLibrary.consoleInfo([[`❓ Quoted user: ${username}`, { color: 'green' }, 'middle']]);
         }
     }

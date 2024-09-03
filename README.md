@@ -11,6 +11,9 @@ When replying to Lupos to "try again", generate prompt from the original message
 
 ADD TIME PER POST
 
+# Bugs to fix
+Replying to a message that has mentions isn't working currently
+
 
 Remove the word "draw" or replace with imagine
 
