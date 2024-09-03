@@ -538,7 +538,6 @@ client.on('messageCreate', async (message) => {
     }
 });
 
-// check every 1 second
 setInterval(() => {
     let currentTime = luxon.DateTime.now();
     let lastMessageSentTimeObject = luxon.DateTime.fromISO(lastMessageSentTime);
