@@ -189,7 +189,7 @@ function removeMentions(text) {
 
 async function processUserMentions(client, messageToCheck, message, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
-    let returnMessageContent = message.content;
+    let returnMessageContent = messageToCheck.content;
     if (messageToCheck.content.match(/<@!?\d+>/g)) {
         const userIds = messageToCheck.content.match(/<@!?\d+>/g).map(user => user.replace(/<@!?/, '').replace('>', ''));
         let currentUser = 0;
@@ -215,7 +215,7 @@ User ${currentUser} mentioned roles: ${roles}`;
                 returnMessageContent = 
 `${textDescription}
                 
-${messageToCheck.content}`
+${returnMessageContent}`
                 UtilityLibrary.consoleInfo([[`❓ User mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
             }
         }   
