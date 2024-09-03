@@ -544,7 +544,6 @@ setInterval(() => {
     let lastMessageSentTimeObject = luxon.DateTime.fromISO(lastMessageSentTime);
     let difference = currentTime.diff(lastMessageSentTimeObject, ['seconds']).toObject();
     if (difference.seconds >= 30) {
-        // UtilityLibrary.consoleInfo([[`30 seconds or longer since last message sent`, { color: 'red' }]]);
         lastMessageSentTime = currentTime.toISO();
     }
 }, 1000);
