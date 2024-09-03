@@ -169,16 +169,17 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
 
     conversation.push({
         role: 'system',
-        content: `
-# General Information
+        content: 
+`# General Information
 - Name: ${client.user.displayName}.
 - ID: ${client.user.id}.
 - Traits: ${roles}.
 
-${imagePrompt ? `# Image That You Generated and Drew` : ''}
-${imagePrompt ? `- Description: (${imagePrompt})` : ''}
+${imagePrompt ? `# Image Generated` : ''}
+${imagePrompt ? `- Visual Description: (${imagePrompt})` : ''}
 
-${news}
+${news ? `# News Information` : ''}
+${news ? news : ''}
 
 ${scrapedURL ? `# URL Information` : ''}
 ${scrapedURL ? `## ${urls[0]}.` : ''}
@@ -391,7 +392,7 @@ const AIService = {
             {
                 role: 'system',
                 content: 
-                `You are an expert at describing visual pieces of art, images, photographs, etc. You are a pro at generating text-to-image prompts for text-to-image models. You will generate a prompt for an image based on the text that is given to you. The text that is given to you is: "${message.content}".
+                `You are an expert at describing visual pieces of art, images, photographs, etc. You are a pro at generating text-to-image prompts for text-to-image models. You will generate a prompt for an image based on the text that is given to you.
 
                 ${pickRandomText}
                 
@@ -403,7 +404,10 @@ const AIService = {
             {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Make a prompt based on this: ${message.content}`,
+                content: 
+`Make a clean prompt for image generation based on the following text, and assets provided: 
+
+${message.content}`,
             }
         ]
         let imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })

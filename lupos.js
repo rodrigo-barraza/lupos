@@ -432,7 +432,7 @@ async function messageQueue() {
             timer++;
         }, 1000);
         
-        UtilityLibrary.consoleInfo([[`═══════════════░▒▓ +MESSAGE+ ▓▒░══════════════════`, { color: 'yellow' }, 'start']]);
+        UtilityLibrary.consoleInfo([[`═══════════════░▒▓ +MESSAGE+ ▓▒░════════════════════════════════════`, { color: 'yellow' }, 'start']]);
 
         if (message.guild) {
             UtilityLibrary.consoleInfo([[`💬 Replying to: ${discordUserTag} in ${message.guild.name} #${message.channel.name}`, { color: 'cyan' }, 'middle']]);
@@ -467,7 +467,7 @@ async function messageQueue() {
         if (!textResponse) {
             UtilityLibrary.consoleInfo([[`⏱️ Duration: `, { }], [{ prompt: timer }, { }, 'middle']]);
             timerInterval.unref();
-            UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════`, { color: 'red' }, 'end']]);
+            UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'red' }, 'end']]);
             message.reply("...");
             return;
         }
@@ -511,7 +511,7 @@ async function messageQueue() {
         lastMessageSentTime = luxon.DateTime.now().toISO();
         UtilityLibrary.consoleInfo([[`⏱️ Duration: `, { }], [`${timer} seconds`, { }, 'middle']]);
         timerInterval.unref();
-        UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░══════════════════`, { color: 'green' }, 'end']]);
+        UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'green' }, 'end']]);
     }
     MoodService.instantiate();
     processingMessageQueue = false;    
