@@ -1,16 +1,8 @@
 process.env.NODE_NO_WARNINGS = 'stream/web';
 require('dotenv/config');
 const {
-    WHITEMANE_YAPPER_ROLE_ID,
-    WHITEMANE_OVERREACTOR_ROLE_ID,
-    WHITEMANE_POLITICS_CHANNEL_ID,
-    GUILD_ID_WHITEMANE,
-    GENERATE_IMAGE,
-    GENERATE_VOICE,
-    BLABBERMOUTH,
-    DETECT_AND_REACT,
-    DISCORD_TOKEN,
-    BARK_VOICE_FOLDER,
+    WHITEMANE_YAPPER_ROLE_ID, WHITEMANE_OVERREACTOR_ROLE_ID, WHITEMANE_POLITICS_CHANNEL_ID, GUILD_ID_WHITEMANE,
+    GENERATE_VOICE, BLABBERMOUTH, DETECT_AND_REACT, DISCORD_TOKEN, BARK_VOICE_FOLDER 
 } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,52 +16,56 @@ const YapperService = require('./services/YapperService.js');
 const luxon = require('luxon');
 const PuppeteerWrapper = require('./wrappers/PuppeteerWrapper.js');
 
+let isResponding = false
+const IGNORE_PREFIX = "!";
+let previousTopAuthorId;
+let previousOverReactorId;
+let lastMessageSentTime = luxon.DateTime.now().toISO()
+let processingMessageQueue = false;
+const queue = []
+
 const client = DiscordWrapper.instantiate();
 
-client.commands = new Collection();
+// client.commands = new Collection();
+// const foldersPath = path.join(__dirname, 'commands');
+// const commandFolders = fs.readdirSync(foldersPath);
 
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
+// for (const folder of commandFolders) {
+// 	const commandsPath = path.join(foldersPath, folder);
+// 	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+// 	for (const file of commandFiles) {
+// 		const filePath = path.join(commandsPath, file);
+// 		const command = require(filePath);
+// 		// Set a new item in the Collection with the key as the command name and the value as the exported module
+// 		if ('data' in command && 'execute' in command) {
+// 			client.commands.set(command.data.name, command);
+// 		} else {
+// 			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+// 		}
+// 	}
+// }
 
-let lastMessageSentTime = luxon.DateTime.now().toISO()
-let isResponding = false
+// client.on(Events.InteractionCreate, async interaction => {
+// 	if (!interaction.isChatInputCommand()) return;
 
-for (const folder of commandFolders) {
-	const commandsPath = path.join(foldersPath, folder);
-	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-	for (const file of commandFiles) {
-		const filePath = path.join(commandsPath, file);
-		const command = require(filePath);
-		// Set a new item in the Collection with the key as the command name and the value as the exported module
-		if ('data' in command && 'execute' in command) {
-			client.commands.set(command.data.name, command);
-		} else {
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-		}
-	}
-}
+// 	const command = interaction.client.commands.get(interaction.commandName);
 
-client.on(Events.InteractionCreate, async interaction => {
-	if (!interaction.isChatInputCommand()) return;
+// 	if (!command) {
+// 		console.error(`No command matching ${interaction.commandName} was found.`);
+// 		return;
+// 	}
 
-	const command = interaction.client.commands.get(interaction.commandName);
-
-	if (!command) {
-		console.error(`No command matching ${interaction.commandName} was found.`);
-		return;
-	}
-
-	try {
-		await command.execute(interaction);
-	} catch (error) {
-		console.error(error);
-		if (interaction.replied || interaction.deferred) {
-			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-		} else {
-			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-		}
-	}
-});
+// 	try {
+// 		await command.execute(interaction);
+// 	} catch (error) {
+// 		console.error(error);
+// 		if (interaction.replied || interaction.deferred) {
+// 			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+// 		} else {
+// 			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+// 		}
+// 	}
+// });
 
 async function generateOverReactors(combinedMessages, guild) {
     const overReactorRoleId = WHITEMANE_OVERREACTOR_ROLE_ID;
@@ -187,72 +183,76 @@ function removeMentions(text) {
     .replace(/@Guild Officer - Alliance/g, '꩜Guild Officer - Alliance')
 }
 
+let usersMentionedCount = 0;
+
+async function generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent) {
+    usersMentionedCount++;
+    const discordUsername = UtilityLibrary.discordUsername(user);
+    const member = message.guild.members.cache.get(user.id);
+    const roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
+    const banner = await DiscordWrapper.getBannerFromUserId(user.id);
+    const bannerUrl = banner ? `https://cdn.discordapp.com/banners/${user.id}/${banner}.jpg?size=512` : '';
+    const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg?size=512` : '';
+    const userLabel = `User-${usersMentionedCount}`;
+    let userVisualDescription = discordUsername;
+    let textDescription = `${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
+
+    if (avatarUrl) {
+        const generatedVision = await AIService.generateVision(avatarUrl, 'Describe this image');
+        const avatarImageDescription = `${generatedVision.choices[0].message.content}.`;
+        textDescription += `\n${userLabel} mentioned foreground description: ${avatarImageDescription}`;
+        userVisualDescription += ` (Foreground: ${avatarImageDescription})`;
+    }
+
+    if (bannerUrl) {
+        const generatedVision = await AIService.generateVision(bannerUrl, 'Describe this image');
+        const bannerImageDescription = `${generatedVision.choices[0].message.content}.`;
+        textDescription += `\n${userLabel} mentioned background description: ${bannerImageDescription}`;
+        userVisualDescription += ` (Background: ${bannerImageDescription})`;
+    }
+
+    if (roles) {
+        textDescription += `\n${userLabel} mentioned roles: ${roles}`;
+    }
+
+    returnImagePrompt = returnImagePrompt.replace(`<@${user.id}>`, userVisualDescription);
+    returnMessageContent = `${textDescription}\n\n${returnMessageContent}`
+    UtilityLibrary.consoleInfo([[`❓ ${userLabel} mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
+    return { returnImagePrompt, returnMessageContent };
+}
+
 async function processUserMentions(client, messageToCheck, message, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
     let messageToCheckHasMentions = returnMessageContent.match(/<@!?\d+>/g);
     let messageHasMentions = message.content.match(/<@!?\d+>/g);
-    if (messageToCheckHasMentions.length || messageHasMentions.length) {
-        const userIdsInMessage = messageHasMentions.map(user => user.replace(/<@!?/, '').replace('>', ''));
-        console.log(111111, userIdsInMessage)
-        const userIdsInMessageToCheck = messageToCheckHasMentions.map(user => user.replace(/<@!?/, '').replace('>', ''));
-        console.log(222222, userIdsInMessageToCheck)
-        const combinedUserIds = [...new Set([...userIdsInMessage, ...userIdsInMessageToCheck])];
-        console.log(333333, combinedUserIds)
-        let currentUser = 0;
-        for (const userId of combinedUserIds) {
-            if (userId === client.user.id) {
-                continue;
+    if (messageToCheckHasMentions?.length || messageHasMentions?.length) {
+        const userIdsInMessage = messageHasMentions?.map(user => user.replace(/<@!?/, '').replace('>', '')) || [];
+        const userIdsInMessageToCheck = messageToCheckHasMentions?.map(user => user.replace(/<@!?/, '').replace('>', '')) || [];
+        if (userIdsInMessageToCheck?.length) {
+            const combinedUserIds = [...new Set([...userIdsInMessage, ...userIdsInMessageToCheck])];
+            let currentUser = 0;
+            for (const userId of combinedUserIds) {
+                if (userId === client.user.id) {
+                    continue;
+                }
+                currentUser++;
+                const user = client.users.cache.get(userId);
+                if (user) {
+                    ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
+                }
             }
-            console.log(4444444, userId)
-            currentUser++;
-            const user = client.users.cache.get(userId);
-            console.log(5555555, user)
-            if (user) {
-                const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
-                const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
-                let member = message.guild.members.cache.get(user.id);
-                let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
-                const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
-                const textDescription = 
-`User ${currentUser} mentioned name: ${UtilityLibrary.discordUsername(user)}
-User ${currentUser} mentioned discord tag: <@${userId}>
-User ${currentUser} mentioned description: ${eyes.choices[0].message.content}
-User ${currentUser} mentioned roles: ${roles}`;
-                returnImagePrompt = returnImagePrompt.replace(`<@${userId}>`, imageDescription);
-                returnMessageContent = 
-`${textDescription}
-                
-${returnMessageContent}`
-                UtilityLibrary.consoleInfo([[`❓ User mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
-            }
-        }   
+        }
     }
-    console.log(666666, returnImagePrompt)
     return { returnImagePrompt, returnMessageContent };
 }
 
 async function processSelfMention(messageToCheck, message, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
-    if (messageToCheck.content.match(/(\bme\b)/g)) {
-        const user = messageToCheck.author;
-        const avatarUrl = `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg`
-        const eyes = await AIService.generateVision(avatarUrl, 'Describe this image');
-        let member = message.guild.members.cache.get(user.id);
-        let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
-        const imageDescription = `${UtilityLibrary.discordUsername(user)} (${eyes.choices[0].message.content} ${roles}.)`;
-        const textDescription =
-`User mentioned name: ${UtilityLibrary.discordUsername(user)}
-User mentioned discord tag: <@${user.id}>
-User mentioned description: ${eyes.choices[0].message.content}
-User mentioned roles: ${roles}`;
-        returnImagePrompt = imageToGenerate.replace('me', imageDescription);
-        returnMessageContent =
-`${textDescription}
-
-${returnMessageContent}`
-    UtilityLibrary.consoleInfo([[`❓ User mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
+    const user = messageToCheck.author;
+    if (messageToCheck.content.match(/(\bme\b)/g) && user) {
+        ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
     }
     return { returnImagePrompt, returnMessageContent };
 }
@@ -269,11 +269,11 @@ async function processEmojis(messageToCheck, imageToGenerate) {
             const emojiName = emoji.match(/:.+:/g)[0].replace(/:/g, '');
             const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
             const eyes = await AIService.generateVision(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
-            const imageDescription = `${emojiName} (${eyes.choices[0].message.content})`;
+            const emojiImageDescription = `${emojiName} (${eyes.choices[0].message.content})`;
             const textDescription = 
 `Emoji ${currentEmoji} name: ${emojiName}
 Emoji ${currentEmoji} description: ${eyes.choices[0].message.content}`;
-            returnImagePrompt = imageToGenerate.replace(emoji, imageDescription);
+            returnImagePrompt = imageToGenerate.replace(emoji, emojiImageDescription);
             returnMessageContent = `${textDescription}\n\n${returnMessageContent.replace(emoji, emojiName)}`;
             UtilityLibrary.consoleInfo([[`❓ Emoji mentioned: ${emojiName}`, { color: 'green' }, 'middle']]);
         }
@@ -338,12 +338,6 @@ ${returnMessageContent}`;
     return { returnImagePrompt, returnMessageContent };
 }
 
-const IGNORE_PREFIX = "!";
-
-let previousTopAuthorId;
-
-let previousOverReactorId;
-
 async function autoAssignRoles(client) {
     const channel1 = client.channels.cache.get(WHITEMANE_POLITICS_CHANNEL_ID);
     const guild = client.guilds.cache.get(GUILD_ID_WHITEMANE);
@@ -400,11 +394,7 @@ async function extractImagesFromAttachmentsAndUrls(message) {
     return images;
 }
 
-
-UtilityLibrary.consoleInfo([[`---`, { bold: true, color: 'green' }]]);
-UtilityLibrary.consoleInfo([[`🤖 Lupos v1.0 starting`, { bold: true, color: 'red' }]]);
-
-client.on("ready", () => {
+function onReady() {
     UtilityLibrary.consoleInfo([[`👌 Logged in as ${client.user.tag}`, { bold: true }]]);
     AlcoholService.instantiate();
     MoodService.instantiate();
@@ -415,11 +405,32 @@ client.on("ready", () => {
             autoAssignRoles(client)
         }, 10 * 1000);
     }
-  }
-);
+}
 
-let processingMessageQueue = false;
-const queue = []
+async function onMessageCreate(message) {
+    if (DETECT_AND_REACT) {
+        UtilityLibrary.detectHowlAndRespond(message)
+        await UtilityLibrary.detectMessageAndReact(message)
+    }
+    const isDirectMessageByBot = message.channel.type === ChannelType.DM && message.author.id === client.user.id;
+    const isMessageWithoutBotMention = message.channel.type != ChannelType.DM && !message.mentions.has(client.user);
+
+    if (message.content.startsWith(IGNORE_PREFIX)) { return }
+    if (isDirectMessageByBot) { return }
+    if (isMessageWithoutBotMention) { return }
+
+    queue.push(message);
+    if (!processingMessageQueue) {
+        isResponding = true
+        await messageQueue()
+        isResponding = false
+        return
+    }
+}
+
+
+UtilityLibrary.consoleInfo([[`---`, { bold: true, color: 'green' }]]);
+UtilityLibrary.consoleInfo([[`🤖 Lupos v1.0 starting`, { bold: true, color: 'red' }]]);
     
 async function messageQueue() {
     if (processingMessageQueue || queue.length === 0) {
@@ -519,31 +530,17 @@ async function messageQueue() {
         lastMessageSentTime = luxon.DateTime.now().toISO();
         UtilityLibrary.consoleInfo([[`⏱️ Duration: `, { }], [`${timer} seconds`, { }, 'middle']]);
         timerInterval.unref();
+        usersMentionedCount = 0;
         UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'green' }, 'end']]);
     }
     MoodService.instantiate();
     processingMessageQueue = false;    
 }
 
-client.on('messageCreate', async (message) => {
-    if (DETECT_AND_REACT) {
-        UtilityLibrary.detectHowlAndRespond(message)
-        await UtilityLibrary.detectMessageAndReact(message)
-    }
-
-    if (message.content.startsWith(IGNORE_PREFIX)) { return }
-    // Ignore all messages from the bot itself
-    if (message.channel.type === ChannelType.DM && message.author.id === client.user.id) { return }
-    // Ignore all messages if not in a DM or if the bot is not mentioned
-    if (message.channel.type != ChannelType.DM && !message.mentions.has(client.user)) { return }
-
-    queue.push(message);
-    if (!processingMessageQueue) {
-        isResponding = true
-        await messageQueue()
-        isResponding = false
-        return
-    }
+client.on(Events.ClientReady, onReady);
+client.on(Events.MessageCreate, onMessageCreate);
+client.on(Events.MessageReactionAdd, async message => {
+    console.log('Reaction added:', message);
 });
 
 setInterval(() => {

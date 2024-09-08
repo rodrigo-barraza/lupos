@@ -12,7 +12,9 @@ When replying to Lupos to "try again", generate prompt from the original message
 ADD TIME PER POST
 
 # Bugs to fix
-Replying to a message that has mentions isn't working currently
+Replying to a message that has mentions isn't working currently ?
+Replying to a user without a profile image breaks
+Reply to user and include their banner image if they have one
 
 
 Remove the word "draw" or replace with imagine
