@@ -49,7 +49,8 @@ async function generateVoice(text) {
     return { filename, buffer };
 }
 
-async function generateUsersSummary(client, message, recent100Messages) {
+async function generateUsersConversationsSummary(client, message, recent100Messages) {
+    const usersConversations = {};
     const uniqueUsers = Array.from(new Map(recent100Messages.map(msg => [msg?.author?.id || msg?.user?.id, msg])).values());
 
     const arrayOfUsers = uniqueUsers.map((user) => {
@@ -64,7 +65,6 @@ async function generateUsersSummary(client, message, recent100Messages) {
                     You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
                     You will describe the messages that are sent to you as detailed and creative as possible.
                     The messages that are sent are what ${DiscordWrapper.getNameFromItem(user)} has been talking about.
-                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(user)} has been talking about", before the summary is given.
                 `
             },
             {
@@ -74,19 +74,29 @@ async function generateUsersSummary(client, message, recent100Messages) {
                 ${userMessagesAsText}`,
             }
         ];
-        const usersSummary = generateText({ conversation, type: 'OPENAI', performance: 'FAST' });
-        return usersSummary;
+        // const generatedText = generateText({ conversation, type: 'OPENAI', performance: 'FAST' });
+        // user.author.id
+        const generatedTextPromise = generateText({ conversation, type: 'OPENAI', performance: 'FAST' });
+        return generatedTextPromise.then(generatedText => ({userId: user.author.id, generatedText}));
+        // return generatedText;
     }).filter(Boolean);
 
+    let generateCurrentConversationUsersSummary = '';
     const allMessages = await Promise.allSettled(arrayOfUsers);
-    let generateCurrentConversationUsersSummary = '## Secondary Participants Conversations\n\n';
-    // generateCurrentConversationUsersSummary += '// These people are also in the chat,
-    allMessages.forEach((result) => {
-        if (result.status === 'fulfilled') {
-            generateCurrentConversationUsersSummary += result.value + `\n\n`;
-        }
-    });
-    return generateCurrentConversationUsersSummary;
+    console.log(1111111111, 'allMessages', allMessages)
+    if (allMessages.length) {
+        generateCurrentConversationUsersSummary = '# Secondary Participants Conversations';
+        // generateCurrentConversationUsersSummary += '// These people are also in the chat,
+        allMessages.forEach((result) => {
+            console.log(1111111111, 'result', result)
+            if (result.status === 'fulfilled') {
+                generateCurrentConversationUsersSummary += `\n${result.value.generatedText}`;
+                usersConversations[result.value.userId] = result.value.generatedText;
+                // usersConversations[result.value.userId] = result.value.generatedText;
+            }
+        });
+    }
+    return { generateCurrentConversationUsersSummary, usersConversations };
 }
 
 async function generateCurrentUserSummary(client, message, recent100Messages, userMessages) {
@@ -102,7 +112,6 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
                     You will go through the messages that are sent to you, and give a detailed summary of what is said to you.
                     You will describe the messages that are sent to you as detailed and creative as possible.
                     The messages that are sent are what ${DiscordWrapper.getNameFromItem(message)} has been talking about.
-                    Start your description with: "### What ${DiscordWrapper.getNameFromItem(message)} has been talking about", before the summary is given.
                 `
             },
             {
@@ -112,13 +121,15 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
                 ${combinedMessages}`,
             }
         ];
-        const response = await generateText({ conversation, performance: 'FAST', tokens: 360 })
-        generateCurrentConversationUserSummary = response;
+        const generatedText = await generateText({ conversation, performance: 'FAST', tokens: 360 })
+        // let response = `# What ${DiscordWrapper.getNameFromItem(message)} has been talking about`
+        // response += `${generatedText}`;
+        generateCurrentConversationUserSummary = generatedText;
     }
     return generateCurrentConversationUserSummary;
 }
 
-async function generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt) {
+async function generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions) {
     let newsSummary = '';
     if (alerts?.length) {
         let alertsText = `# Latest News Articles:\n\n`;
@@ -145,10 +156,7 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
     let conversation = [];
 
     const messageContent = message.content;
-
-    // let recentMessages = (await message.channel.messages.fetch({ limit: RECENT_MESSAGES_LIMIT })).reverse();
     let recent100Messages = (await message.channel.messages.fetch({ limit: 100 })).reverse();
-    
     message.content = messageContent;
 
     let recent100MessagesArray = recent100Messages.map((msg) => msg);
@@ -161,47 +169,74 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
 
     const userMessages = recent100Messages.filter(msg => msg.author.id === authorId);
 
-    const generateCurrentUserSummaryy = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
-    const generateUsersSummaryy = await generateUsersSummary(client, message, filteredRecent100Messages);
-    const generateCurrentConversationUsers = await MessageService.generateCurrentConversationUsers(client, message, filteredRecent100Messages);
+    const generatedCurrentUserSummary = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
+    const { generatedUsersConversationsSummary, usersConversations } = await generateUsersConversationsSummary(client, message, filteredRecent100Messages);
+    console.log('usersConversations', usersConversations)
+    const assembledCurrentConversationUsers = await MessageService.assembleCurrentConversationUsers(client, message, filteredRecent100Messages, usersConversations);
+
+    console.log('generatedUsersConversationsSummary', generatedUsersConversationsSummary)
 
     const roles = UtilityLibrary.discordRoles(message.member);
+    
+    // const selfRoles = message.guild.members.cache.get(client.user.id).roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ');
+
+    // ${news ? `# News Information` : ''}
+    // ${news ? news : ''}
+    // ${scrapedURL ? `# URL Information` : ''}
+    // ${scrapedURL ? `## ${urls[0]}.` : ''}
+    // ${scrapedURL ? `- Title: ${scrapedURL.title}.` : ''}
+    // ${scrapedURL ? `- Description: ${scrapedURL.description}.` : ''}
+    // ${scrapedURL ? `- Keywords: ${scrapedURL.keywords}.` : ''}
+    // ${newsSummary}
+    // ${trends}
+    // Your traits, roles and descriptions: ${selfRoles}
+
+    const mentionedUserContent = 
+`# Users Mentioned`;
+
+    let conversationSystemContent =
+`# Your Information
+Your name: ${client.user.displayName}
+Your discord user ID: <@${client.user.id}>
+${imagePrompt ? `Image that you've generated separately and is attached to your reply: ${imagePrompt}` : ''}`;
+
+    if (userMentions) {
+        conversationSystemContent += `\n\n${userMentions}`
+    }
+
+    conversationSystemContent += 
+`\n\n${MessageService.assembleDateMessage()}
+
+${MessageService.assembleServerInformation(message)}
+
+${MessageService.assembleCurrentConversationUser(message)}
+Topic of conversation: ${generatedCurrentUserSummary}`
+
+    if (assembledCurrentConversationUsers) {
+        conversationSystemContent += `\n\n${assembledCurrentConversationUsers}`
+    }
+
+    if (generatedUsersConversationsSummary) {
+        conversationSystemContent += `\n\n${generatedUsersConversationsSummary}`
+    }
+
+    conversationSystemContent += 
+`\n\n${MessageService.assembleAssistantMessage()}
+
+${MessageService.assembleBackstoryMessage(message.guild?.id)}
+
+${MessageService.assemblePersonalityMessage()}
+
+${MessageService.assembleServerSpecificMessage(message.guild?.id)}`
+
 
     conversation.push({
         role: 'system',
-        content: 
-`# General Information
-- Name: ${client.user.displayName}.
-- ID: ${client.user.id}.
-- Traits: ${roles}.
-
-${imagePrompt ? `# Image Generated` : ''}
-${imagePrompt ? `- Visual Description: (${imagePrompt})` : ''}
-
-${news ? `# News Information` : ''}
-${news ? news : ''}
-
-${scrapedURL ? `# URL Information` : ''}
-${scrapedURL ? `## ${urls[0]}.` : ''}
-${scrapedURL ? `- Title: ${scrapedURL.title}.` : ''}
-${scrapedURL ? `- Description: ${scrapedURL.description}.` : ''}
-${scrapedURL ? `- Keywords: ${scrapedURL.keywords}.` : ''}
-
-${newsSummary}
-
-${trends}
-
-${MessageService.generateDateMessage()}
-${MessageService.generateServerKnowledge(message)}
-${MessageService.generateCurrentConversationUser(message)}
-${generateCurrentUserSummaryy}
-${generateCurrentConversationUsers}
-${generateUsersSummaryy}
-${MessageService.generateAssistantMessage()}
-${MessageService.generateBackstoryMessage(message.guild?.id)}
-${MessageService.generatePersonalityMessage()}
-${MessageService.generateServerSpecificMessage(message.guild?.id)}`
+        content: conversationSystemContent
     });
+
+    UtilityLibrary.consoleInfo([[`📄 Conversation:`, { color: 'cyan' }, 'middle']]);
+    console.log(conversation[0].content);
 
     recentMessages.forEach((msg, index) => {
         if (msg.author.id === client.user.id) {
@@ -218,8 +253,7 @@ ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
             })
         }
     })
-
-    // console.info('║ 📜 Conversation:', conversation)
+    
     return conversation;
 }
 
@@ -329,7 +363,7 @@ const AIService = {
         const conversation = generateConversation(systemMessage, userMessage, message);
         return await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 600 });
     },
-    async generateTextResponse({ message, type, performance, tokens }, imagePrompt) {
+    async generateTextResponse({ message, type, performance, tokens }, imagePrompt, userMentions) {
         UtilityLibrary.consoleInfo([[`🎨 Text prompt input:\n${message.content}`, { color: 'blue' }, 'middle']]);
         try {
             const client = DiscordWrapper.getClient();
@@ -344,12 +378,12 @@ const AIService = {
             const trends = '';
             // const news = await AIService.generateGoogleNews(message);
             const news = '';
-            const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt);
+            const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions);
             let generatedText = await generateText({ conversation, type, performance, tokens });
 
             let notCapable = await generateNotCapableResponseCheck(message, generatedText);
             if (notCapable.toLowerCase() === 'yes' && imagePrompt) {
-                UtilityLibrary.consoleInfo([[`🎨 Text not capable: ${notCapable.toLowerCase()}`, { color: 'red' }, 'middle']]);
+                UtilityLibrary.consoleInfo([[`🎨 Text not capable: ${generatedText}`, { color: 'red' }, 'middle']]);
                 generatedText = imagePrompt;
             }
             // const bannedWordsRegex = /:\w+:|beaner|[c0245][0-9]on|chink|f[\s.@]a[g]{1,2}[oi0]{1,2}t|m(?:[7-9]|10)g(?:[7-9]|10)t|f(?:[7-9]|10)g(?:[7-9]|10)|[gf][ao]int[rt]|fgt{2,3}rtd|fgt{2,3}|froc[i1]{2}aggine|g[0o]{2}k|honkey|https:\/\/imgur.com\/aRYkT2C|kike|kys|n![1ig]{1,3}3r|n!g{1,2}er|ni🅱️ 🅱️ a|ni[bg]{1,3}a|[ng][i1][g]{1,2}3r|n[ig]{3}a|[n3][i1][g6]{1,2}[3e]?[r]?|n[ig]{3}let|spic|tran{2,3}[iy]{1,2}|wetback|www.wowgoldgo.com/gi;
@@ -379,7 +413,7 @@ const AIService = {
             return;
         }
     },
-    async createImagePrompt(message, text) {
+    async createImagePrompt(message, imageToGenerate) {
         DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
         const username = UtilityLibrary.discordUsername(message.author || message.member);
         const randomText = [
@@ -399,7 +433,7 @@ const AIService = {
                 Keep as much original details as possible. Do not include any additional text besides the prompt.
                 Do not make self-referential comments or break the fourth wall.
 
-                ${MessageService.generateServerSpecificMessage(message.guild?.id)}`
+                ${MessageService.assembleServerSpecificMessage(message.guild?.id)}`
             },
             {
                 role: 'user',
@@ -413,14 +447,13 @@ ${message.content}`,
         let imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
         if (notCapable.toLowerCase() === 'yes') {
-            UtilityLibrary.consoleInfo([[`🎨 Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }, 'middle']]);
-            imagePrompt = text ? text : message.content;
+            UtilityLibrary.consoleInfo([[`🎨 Image not capable: ${imagePrompt}`, { color: 'red' }, 'middle']]);
+            imagePrompt = imageToGenerate ? imageToGenerate : message.content;
         }
         UtilityLibrary.consoleInfo([[`🎨 Image prompt output:\n${imagePrompt}`, { color: 'green' }, 'middle']]);
         return imagePrompt;
     },
-    async createImagePromptFromImageAndText(message, imagePrompt, textResponse) {
-        UtilityLibrary.consoleInfo([[`🎨 Image: prompt started`, { color: 'yellow' }, 'middle']]);
+    async createImagePromptFromImageAndText(message, imagePrompt, textResponse, imageToGenerate) {
         // DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
         // const username = UtilityLibrary.discordUsername(message.author || message.member);
         // const randomText = [
@@ -432,16 +465,15 @@ ${message.content}`,
         let conversation = [
             {
                 role: 'system',
-                content: 
-                `You are an expert at describing visual pieces of art, images, photographs, etc. You are a pro at generating text-to-image prompts for text-to-image models. You will generate a prompt for an image based on the two pieces of text given to you.
-                
-                The first text that is given to you is: "${imagePrompt}".
+                content: `You are given two prompts; an image and text prompt. You will combine these two prompts into a single cohesive image prompt, while keeping the original details as much as possible. Do not omit any details from the visual image prompt, as this is the answer to the user's question.
 
-                The second text that is given to you is: "${textResponse}".
+                Visual image prompt: "${imagePrompt}".
+                Descriptive text prompt: "${textResponse}".
                 
                 Keep as much original details as possible.
                 Try to answer any questions that are asked in the text.
-                Do not make self-referential comments or break the fourth wall.`
+                Do not make self-referential comments or break the fourth wall.
+                Do not answer with a question.`
             },
             {
                 role: 'user',
@@ -452,14 +484,14 @@ ${message.content}`,
                 Prompt 2: ${textResponse}`,
             }
         ]
-        imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
-        // let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
-        // if (notCapable.toLowerCase() === 'yes') {
-        //     UtilityLibrary.consoleInfo([[`🎨 Image not capable: ${notCapable.toLowerCase()}`, { color: 'red' }, 'middle']]);
-        //     imagePrompt = text ? text : message.content;
-        // }
-        UtilityLibrary.consoleInfo([[`🎨 Image: prompt finished`, { color: 'yellow' }, 'middle']]);
-        return imagePrompt;
+        let generatedImagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+        let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
+        if (notCapable.toLowerCase() === 'yes') {
+            UtilityLibrary.consoleInfo([[`🎨 Image not capable 2: ${generatedImagePrompt}`, { color: 'red' }, 'middle']]);
+            generatedImagePrompt = imageToGenerate ? imageToGenerate : message.content;
+        }
+        UtilityLibrary.consoleInfo([[`🎨 Image prompt 2 output:\n${generatedImagePrompt}`, { color: 'green' }, 'middle']]);
+        return generatedImagePrompt;
     },
     async generateImage(imagePrompt) {
         try {
@@ -489,8 +521,8 @@ ${message.content}`,
             {
                 role: 'system',
                 content: `
-                    ${MessageService.generateBackstoryMessage(message.guild?.id)}
-                    ${MessageService.generatePersonalityMessage()}
+                    ${MessageService.assembleBackstoryMessage(message.guild?.id)}
+                    ${MessageService.assemblePersonalityMessage()}
                     You are an expert at telling if a conversation is positive, neutral or negative, but taking into account how your character would perceive it and react to it. You will only answer with a between from -10 to 10. -10 Being the most negative, 0 being mostly neutral, and 12 being as positive as possible. The number you pick between -10 to 10 will depend on the tone of the conversation, and nothing else. You do not type anything else besides the number that indicates the tone of the conversation. Only a number between -10 to 10, nothing else. You only output a number, an integer, nothing else.
                 `
             },

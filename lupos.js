@@ -197,11 +197,16 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
     let userVisualDescription = discordUsername;
     let textDescription = `${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
 
+    let systemPromptDescription = `# ${userLabel} Mentioned`
+    systemPromptDescription += `\nName: ${discordUsername}`;
+    systemPromptDescription += `\nDiscord Tag: <@${user.id}>`;
+
     if (avatarUrl) {
         const generatedVision = await AIService.generateVision(avatarUrl, 'Describe this image');
         const avatarImageDescription = `${generatedVision.choices[0].message.content}.`;
         textDescription += `\n${userLabel} mentioned foreground description: ${avatarImageDescription}`;
         userVisualDescription += ` (Foreground: ${avatarImageDescription})`;
+        systemPromptDescription += `\nCharacter Description: ${avatarImageDescription}`;
     }
 
     if (bannerUrl) {
@@ -209,19 +214,22 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
         const bannerImageDescription = `${generatedVision.choices[0].message.content}.`;
         textDescription += `\n${userLabel} mentioned background description: ${bannerImageDescription}`;
         userVisualDescription += ` (Background: ${bannerImageDescription})`;
+        systemPromptDescription += `\nBackground Description: ${bannerImageDescription}`;
     }
 
     if (roles) {
         textDescription += `\n${userLabel} mentioned roles: ${roles}`;
+        systemPromptDescription += `\nTraits: ${roles}`;
     }
 
     returnImagePrompt = returnImagePrompt.replace(`<@${user.id}>`, userVisualDescription);
     returnMessageContent = `${textDescription}\n\n${returnMessageContent}`
     UtilityLibrary.consoleInfo([[`❓ ${userLabel} mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
-    return { returnImagePrompt, returnMessageContent };
+    return { returnImagePrompt, returnMessageContent, systemPromptDescription };
 }
 
 async function processUserMentions(client, messageToCheck, message, imageToGenerate) {
+    let userMentions;
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
     let messageToCheckHasMentions = returnMessageContent.match(/<@!?\d+>/g);
@@ -239,22 +247,23 @@ async function processUserMentions(client, messageToCheck, message, imageToGener
                 currentUser++;
                 const user = client.users.cache.get(userId);
                 if (user) {
-                    ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
+                    ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent, systemPromptDescription: userMentions } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
                 }
             }
         }
     }
-    return { returnImagePrompt, returnMessageContent };
+    return { returnImagePrompt, returnMessageContent, userMentions };
 }
 
 async function processSelfMention(messageToCheck, message, imageToGenerate) {
+    let systemPromptDescription;
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
     const user = messageToCheck.author;
     if (messageToCheck.content.match(/(\bme\b)/g) && user) {
-        ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
+        ({ returnImagePrompt: returnImagePrompt, returnMessageContent: returnMessageContent, systemPromptDescription: systemPromptDescription } = await generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent));
     }
-    return { returnImagePrompt, returnMessageContent };
+    return { returnImagePrompt, returnMessageContent, systemPromptDescription };
 }
 
 async function processEmojis(messageToCheck, imageToGenerate) {
@@ -433,6 +442,7 @@ UtilityLibrary.consoleInfo([[`---`, { bold: true, color: 'green' }]]);
 UtilityLibrary.consoleInfo([[`🤖 Lupos v1.0 starting`, { bold: true, color: 'red' }]]);
     
 async function messageQueue() {
+    console.log(queue.length)
     if (processingMessageQueue || queue.length === 0) {
         console.log('Message Queue is currently processing or empty');
         return;
@@ -459,9 +469,11 @@ async function messageQueue() {
             UtilityLibrary.consoleInfo([[`💬 Replying to: ${discordUserTag} in a private message`, { color: 'cyan' }, 'middle']]);
         }
 
+        let systemPromptDescription;
+        let userMentions;
         let imageToGenerate = message.content;
         imageToGenerate = userIdToUsername(client, imageToGenerate);
-        ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processUserMentions(client, message, message, imageToGenerate));
+        ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userMentions: userMentions } = await processUserMentions(client, message, message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processSelfMention(message, message, imageToGenerate));
         ['draw ', 'draw me '].forEach(substring => { imageToGenerate = imageToGenerate.replace(substring, '') });
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processImageAttachmentsAndUrls(message, imageToGenerate));
@@ -469,7 +481,11 @@ async function messageQueue() {
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processReply(client, message, imageToGenerate));
 
         let imagePrompt = await AIService.createImagePrompt(message, imageToGenerate);
-        let textResponse = await AIService.generateTextResponse({ message }, imagePrompt);
+        let textResponse = await AIService.generateTextResponse({ message }, imagePrompt, userMentions);
+
+        let newImagePrompt = await AIService.createImagePromptFromImageAndText(message, imagePrompt, textResponse, imageToGenerate);
+
+
         // let imagePromptFromImageAndText;
 
         // let textResponseAnswer = await AIService.generateTextResponseAnswer(conversation, textResponse);
@@ -481,10 +497,10 @@ async function messageQueue() {
         //     imagePromptFromImageAndText = finalResults[0];
         // }
 
-        let generatedImage = await AIService.generateImage(imagePrompt);
+        let generatedImage = await AIService.generateImage(newImagePrompt);
     
         if (!textResponse) {
-            UtilityLibrary.consoleInfo([[`⏱️ Duration: `, { }], [{ prompt: timer }, { }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`⏱️ Duration: ${timer} seconds`, { color: 'cyan' }, 'middle']]);
             timerInterval.unref();
             UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'red' }, 'end']]);
             message.reply("...");
@@ -528,7 +544,8 @@ async function messageQueue() {
             await message.reply(messageReplyOptions);
         }
         lastMessageSentTime = luxon.DateTime.now().toISO();
-        UtilityLibrary.consoleInfo([[`⏱️ Duration: `, { }], [`${timer} seconds`, { }, 'middle']]);
+        
+        UtilityLibrary.consoleInfo([[`⏱️ Duration: ${timer} seconds`, { color: 'cyan' }, 'middle']]);
         timerInterval.unref();
         usersMentionedCount = 0;
         UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'green' }, 'end']]);
@@ -540,7 +557,7 @@ async function messageQueue() {
 client.on(Events.ClientReady, onReady);
 client.on(Events.MessageCreate, onMessageCreate);
 client.on(Events.MessageReactionAdd, async message => {
-    console.log('Reaction added:', message);
+    // console.log('Reaction added:', message);
 });
 
 setInterval(() => {
