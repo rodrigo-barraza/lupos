@@ -186,7 +186,6 @@ function removeMentions(text) {
 let usersMentionedCount = 0;
 
 async function generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent) {
-    console.log(9999999999999999, returnMessageContent)
     usersMentionedCount++;
     const discordUsername = UtilityLibrary.discordUsername(user);
     const member = message.guild.members.cache.get(user.id);
@@ -196,9 +195,10 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
     const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg?size=512` : '';
     const userLabel = `User-${usersMentionedCount}`;
     let userVisualDescription = discordUsername;
-    let textDescription = `\n${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
+    let textDescription = `\n# ${userLabel} Mentioned`;
+    textDescription += `\n${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
 
-    let systemPromptDescription = `# ${userLabel} Mentioned`
+    let systemPromptDescription = `# ${userLabel} mentioned`
     systemPromptDescription += `\nName: ${discordUsername}`;
     systemPromptDescription += `\nDiscord Tag: <@${user.id}>`;
 
@@ -225,7 +225,6 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
 
     returnImagePrompt = returnImagePrompt.replace(`<@${user.id}>`, userVisualDescription);
     returnMessageContent = `${returnMessageContent}\n\n${textDescription}`
-    console.log(9999999999999999, returnMessageContent)
     UtilityLibrary.consoleInfo([[`❓ ${userLabel} mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
     return { returnImagePrompt, returnMessageContent, systemPromptDescription };
 }
@@ -480,11 +479,11 @@ async function messageQueue() {
 
         let userMentions;
         let userReply;
+        ['draw', 'paint', 'sketch'].forEach(substring => { message.content = message.content.replace(new RegExp(substring, 'g'), 'describe')});
         let imageToGenerate = message.content;
         imageToGenerate = userIdToUsername(client, imageToGenerate);
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userMentions: userMentions } = await processUserMentions(client, message, message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processSelfMention(message, message, imageToGenerate));
-        ['draw ', 'draw me '].forEach(substring => { imageToGenerate = imageToGenerate.replace(substring, '') });
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processImageAttachmentsAndUrls(message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processEmojis(message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userReply: userReply } = await processReply(client, message, imageToGenerate));

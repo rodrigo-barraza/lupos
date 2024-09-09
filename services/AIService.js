@@ -235,7 +235,8 @@ ${MessageService.assembleServerSpecificMessage(message.guild?.id)}`
     });
 
     UtilityLibrary.consoleInfo([[`📄 Conversation:`, { color: 'cyan' }, 'middle']]);
-    console.log(conversation[0].content);
+
+    console.log(conversation[0].content); // prints out the system message
 
     recentMessages.forEach((msg, index) => {
         if (msg.author.id === client.user.id) {
