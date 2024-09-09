@@ -127,7 +127,7 @@ async function generateCurrentUserSummary(client, message, recent100Messages, us
     return generateCurrentConversationUserSummary;
 }
 
-async function generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions) {
+async function generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions, userReply) {
     let newsSummary = '';
     if (alerts?.length) {
         let alertsText = `# Latest News Articles:\n\n`;
@@ -197,6 +197,10 @@ ${imagePrompt ? `Image that you've generated separately and is attached to your 
 
     if (userMentions) {
         conversationSystemContent += `\n\n${userMentions}`
+    }
+
+    if (userReply) {
+        conversationSystemContent += `\n\n${userReply}`
     }
 
     conversationSystemContent += 
@@ -358,8 +362,8 @@ const AIService = {
         const conversation = generateConversation(systemMessage, userMessage, message);
         return await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 600 });
     },
-    async generateTextResponse({ message, type, performance, tokens }, imagePrompt, userMentions) {
-        UtilityLibrary.consoleInfo([[`🎨 Text prompt input:\n${message.content}`, { color: 'blue' }, 'middle']]);
+    async generateTextResponse({ message, type, performance, tokens }, imagePrompt, userMentions, userReply) {
+        UtilityLibrary.consoleInfo([[`🎨 generateTextResponse input:\n${message.content}`, { color: 'blue' }, 'middle']]);
         try {
             const client = DiscordWrapper.getClient();
             DiscordWrapper.setActivity(`✍️ Replying to ${DiscordWrapper.getNameFromItem(message)}...`);
@@ -373,12 +377,12 @@ const AIService = {
             const trends = '';
             // const news = await AIService.generateGoogleNews(message);
             const news = '';
-            const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions);
+            const conversation = await generateConversationFromRecentMessages(message, client, alerts, trends, news, imagePrompt, userMentions, userReply);
             let generatedText = await generateText({ conversation, type, performance, tokens });
 
             let notCapable = await generateNotCapableResponseCheck(message, generatedText);
             if (notCapable.toLowerCase() === 'yes' && imagePrompt) {
-                UtilityLibrary.consoleInfo([[`🎨 Text not capable: ${generatedText}`, { color: 'red' }, 'middle']]);
+                UtilityLibrary.consoleInfo([[`🎨 generateTextResponse not capable: ${generatedText}`, { color: 'red' }, 'middle']]);
                 generatedText = imagePrompt;
             }
             // const bannedWordsRegex = /:\w+:|beaner|[c0245][0-9]on|chink|f[\s.@]a[g]{1,2}[oi0]{1,2}t|m(?:[7-9]|10)g(?:[7-9]|10)t|f(?:[7-9]|10)g(?:[7-9]|10)|[gf][ao]int[rt]|fgt{2,3}rtd|fgt{2,3}|froc[i1]{2}aggine|g[0o]{2}k|honkey|https:\/\/imgur.com\/aRYkT2C|kike|kys|n![1ig]{1,3}3r|n!g{1,2}er|ni🅱️ 🅱️ a|ni[bg]{1,3}a|[ng][i1][g]{1,2}3r|n[ig]{3}a|[n3][i1][g6]{1,2}[3e]?[r]?|n[ig]{3}let|spic|tran{2,3}[iy]{1,2}|wetback|www.wowgoldgo.com/gi;
@@ -386,11 +390,11 @@ const AIService = {
             //     UtilityLibrary.consoleInfo([[`📝 Text: generation failed because of regex`, { color: 'red' }, 'middle']]);
             //     return '...';
             // }
-            UtilityLibrary.consoleInfo([[`🎨 Text prompt output:\n${generatedText}`, { color: 'green' }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`🎨 generateTextResponse output:\n${generatedText}`, { color: 'green' }, 'middle']]);
             return generatedText;
         } catch (error) { 
             console.log(error)
-            UtilityLibrary.consoleInfo([[`📝 Text: generation failed`, { color: 'red' }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`📝 generateTextResponse failed`, { color: 'red' }, 'middle']]);
             return;
         }
     },
@@ -408,7 +412,7 @@ const AIService = {
             return;
         }
     },
-    async createImagePrompt(message, imageToGenerate) {
+    async generateImagePrompt(message, imageToGenerate) {
         DiscordWrapper.setActivity(`🎨 Drawing for ${DiscordWrapper.getNameFromItem(message)}...`);
         const username = UtilityLibrary.discordUsername(message.author || message.member);
         const randomText = [
@@ -416,7 +420,7 @@ const AIService = {
             
         ]
         const pickRandomText = randomText[Math.floor(Math.random() * randomText.length)];
-        UtilityLibrary.consoleInfo([[`🎨 Image prompt input:\n${message.content}`, { color: 'blue' }, 'middle']]);
+        UtilityLibrary.consoleInfo([[`🎨 generateImagePrompt input:\n${message.content}`, { color: 'blue' }, 'middle']]);
         let conversation = [
             {
                 role: 'system',
@@ -442,10 +446,10 @@ ${message.content}`,
         let imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
         if (notCapable.toLowerCase() === 'yes') {
-            UtilityLibrary.consoleInfo([[`🎨 Image not capable: ${imagePrompt}`, { color: 'red' }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`🎨 generateImagePrompt not capable: ${imagePrompt}`, { color: 'red' }, 'middle']]);
             imagePrompt = imageToGenerate ? imageToGenerate : message.content;
         }
-        UtilityLibrary.consoleInfo([[`🎨 Image prompt output:\n${imagePrompt}`, { color: 'green' }, 'middle']]);
+        UtilityLibrary.consoleInfo([[`🎨 generateImagePrompt output:\n${imagePrompt}`, { color: 'green' }, 'middle']]);
         return imagePrompt;
     },
     async createImagePromptFromImageAndText(message, imagePrompt, textResponse, imageToGenerate) {

@@ -44,7 +44,6 @@ const MessageService = {
 
                 if (recentMessage.author.id &&
                     uniqueUserMentions.indexOf(userMention) === -1 && userMention !== botMention) {
-                        console.log(888)
                         participantsCount++;
                         let member = message.guild.members.cache.get(recentMessage.author.id);
                         let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';

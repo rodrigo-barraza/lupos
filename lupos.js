@@ -186,6 +186,7 @@ function removeMentions(text) {
 let usersMentionedCount = 0;
 
 async function generateImagePromptAndMessageContent(message, user, returnImagePrompt, returnMessageContent) {
+    console.log(9999999999999999, returnMessageContent)
     usersMentionedCount++;
     const discordUsername = UtilityLibrary.discordUsername(user);
     const member = message.guild.members.cache.get(user.id);
@@ -195,7 +196,7 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
     const avatarUrl = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.jpg?size=512` : '';
     const userLabel = `User-${usersMentionedCount}`;
     let userVisualDescription = discordUsername;
-    let textDescription = `${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
+    let textDescription = `\n${userLabel} mentioned name: ${discordUsername}\n${userLabel} mentioned discord tag: <@${user.id}>`;
 
     let systemPromptDescription = `# ${userLabel} Mentioned`
     systemPromptDescription += `\nName: ${discordUsername}`;
@@ -223,7 +224,8 @@ async function generateImagePromptAndMessageContent(message, user, returnImagePr
     }
 
     returnImagePrompt = returnImagePrompt.replace(`<@${user.id}>`, userVisualDescription);
-    returnMessageContent = `${textDescription}\n\n${returnMessageContent}`
+    returnMessageContent = `${returnMessageContent}\n\n${textDescription}`
+    console.log(9999999999999999, returnMessageContent)
     UtilityLibrary.consoleInfo([[`❓ ${userLabel} mentioned: ${UtilityLibrary.discordUsername(user)}`, { color: 'green' }, 'middle']]);
     return { returnImagePrompt, returnMessageContent, systemPromptDescription };
 }
@@ -323,6 +325,7 @@ Attached image ${currentImage} URL: ${image}`;
 async function processReply(client, message, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = message.content;
+    let userReply;
     if (message.reference) {
         const originalMessage = await message.channel.messages.fetch(message.reference.messageId);
         returnMessageContent = originalMessage.content;
@@ -334,17 +337,24 @@ async function processReply(client, message, imageToGenerate) {
             const username = UtilityLibrary.discordUsername(originalMessage.author);
             const userId = UtilityLibrary.discordUserId(originalMessage);
             const originalMessageContent = originalMessage.content;
-            returnImagePrompt = `${imageToGenerate}.`;
-            returnMessageContent =
-`Quoted Username: ${username}
-Quoted Discord Tag: <@${userId}>
-Quoted Message: ${originalMessageContent}
 
-${returnMessageContent}`;
+            returnImagePrompt = `${imageToGenerate}.`;
+
+            returnMessageContent = `${message.content}`;
+            returnMessageContent += `\n\n# I'm replying to another user's message`;
+            returnMessageContent += `\nUser: ${username}`
+            returnMessageContent += `\nDiscord used ID tag: <@${userId}>`
+            returnMessageContent += `\nMessage: ${originalMessageContent}`
+
+            userReply = `# Primary participant is quoting another user`;
+            userReply += `\nQuoted user: ${username}`
+            userReply += `\nQuoted user's Discord user ID tag: <@${userId}>`
+            userReply += `\nQuoted user's message: ${originalMessageContent}`
+
             UtilityLibrary.consoleInfo([[`❓ Quoted user: ${username}`, { color: 'green' }, 'middle']]);
         }
     }
-    return { returnImagePrompt, returnMessageContent };
+    return { returnImagePrompt, returnMessageContent, userReply };
 }
 
 async function autoAssignRoles(client) {
@@ -468,8 +478,8 @@ async function messageQueue() {
             UtilityLibrary.consoleInfo([[`💬 Replying to: ${discordUserTag} in a private message`, { color: 'cyan' }, 'middle']]);
         }
 
-        let systemPromptDescription;
         let userMentions;
+        let userReply;
         let imageToGenerate = message.content;
         imageToGenerate = userIdToUsername(client, imageToGenerate);
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userMentions: userMentions } = await processUserMentions(client, message, message, imageToGenerate));
@@ -477,28 +487,15 @@ async function messageQueue() {
         ['draw ', 'draw me '].forEach(substring => { imageToGenerate = imageToGenerate.replace(substring, '') });
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processImageAttachmentsAndUrls(message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processEmojis(message, imageToGenerate));
-        ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processReply(client, message, imageToGenerate));
+        ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userReply: userReply } = await processReply(client, message, imageToGenerate));
 
-        let imagePrompt = await AIService.createImagePrompt(message, imageToGenerate);
-        let textResponse = await AIService.generateTextResponse({ message }, imagePrompt, userMentions);
+        let generatedImagePrompt = await AIService.generateImagePrompt(message, imageToGenerate);
+        let generatedTextResponse = await AIService.generateTextResponse({ message }, generatedImagePrompt, userMentions, userReply);
 
-        let newImagePrompt = await AIService.createImagePromptFromImageAndText(message, imagePrompt, textResponse, imageToGenerate);
-
-
-        // let imagePromptFromImageAndText;
-
-        // let textResponseAnswer = await AIService.generateTextResponseAnswer(conversation, textResponse);
-
-        // if (GENERATE_IMAGE) {
-        //     const finalResults = await Promise.all([
-        //         AIService.createImagePromptFromImageAndText(message, imagePrompt, textResponse)
-        //     ]);
-        //     imagePromptFromImageAndText = finalResults[0];
-        // }
-
+        let newImagePrompt = await AIService.createImagePromptFromImageAndText(message, generatedImagePrompt, generatedTextResponse, imageToGenerate);
         let generatedImage = await AIService.generateImage(newImagePrompt);
     
-        if (!textResponse) {
+        if (!generatedTextResponse) {
             UtilityLibrary.consoleInfo([[`⏱️ Duration: ${timer} seconds`, { color: 'cyan' }, 'middle']]);
             timerInterval.unref();
             UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'red' }, 'end']]);
@@ -506,7 +503,7 @@ async function messageQueue() {
             return;
         }
     
-        let responseMessage = userIdToUsername(client, textResponse);
+        let responseMessage = userIdToUsername(client, generatedTextResponse);
         responseMessage = removeMentions(responseMessage);
 
         //  replace <@!1234567890> with the user's display name
@@ -547,6 +544,12 @@ async function messageQueue() {
         UtilityLibrary.consoleInfo([[`⏱️ Duration: ${timer} seconds`, { color: 'cyan' }, 'middle']]);
         timerInterval.unref();
         usersMentionedCount = 0;
+        
+        if (message.guild) {
+            UtilityLibrary.consoleInfo([[`💬 Replied to: ${discordUserTag} in ${message.guild.name} #${message.channel.name}`, { color: 'cyan' }, 'middle']]);
+        } else {
+            UtilityLibrary.consoleInfo([[`💬 Replied to: ${discordUserTag} in a private message`, { color: 'cyan' }, 'middle']]);
+        }
         UtilityLibrary.consoleInfo([[`═══════════════░▒▓ -MESSAGE- ▓▒░════════════════════════════════════`, { color: 'green' }, 'end']]);
     }
     MoodService.instantiate();
