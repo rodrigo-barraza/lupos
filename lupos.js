@@ -270,21 +270,23 @@ async function processSelfMention(messageToCheck, message, imageToGenerate) {
 async function processEmojis(messageToCheck, imageToGenerate) {
     let returnImagePrompt = imageToGenerate;
     let returnMessageContent = messageToCheck.content;
+    console.log(777777777777, returnMessageContent)
     let emojis = returnMessageContent.split(' ').filter(part => /<(a)?:.+:\d+>/g.test(part));
     if (emojis) {
         let currentEmoji = 0;
         for (const emoji of emojis) {
+            const parsedEmoji = emoji.replace(/[\n#]/g, '');
             currentEmoji++;
-            const emojiId = emoji.split(":").pop().slice(0, -1);
-            const emojiName = emoji.match(/:.+:/g)[0].replace(/:/g, '');
+            const emojiId = parsedEmoji.split(":").pop().slice(0, -1);
+            const emojiName = parsedEmoji.match(/:.+:/g)[0].replace(/:/g, '');
             const emojiUrl = `https://cdn.discordapp.com/emojis/${emojiId}.png`;
             const eyes = await AIService.generateVision(emojiUrl, `Describe this image named ${emojiId}. Do not mention that it is low quality, resolution, or pixelated.`);
             const emojiImageDescription = `${emojiName} (${eyes.choices[0].message.content})`;
-            const textDescription = 
-`Emoji ${currentEmoji} name: ${emojiName}
-Emoji ${currentEmoji} description: ${eyes.choices[0].message.content}`;
-            returnImagePrompt = imageToGenerate.replace(emoji, emojiImageDescription);
-            returnMessageContent = `${textDescription}\n\n${returnMessageContent.replace(emoji, emojiName)}`;
+            let textDescription = `# Emoji-${currentEmoji} included`
+            textDescription += `\nName: ${emojiName}`
+            textDescription += `\nDescription: ${eyes.choices[0].message.content}`;
+            returnImagePrompt = imageToGenerate.replace(parsedEmoji, emojiImageDescription);
+            returnMessageContent = `${returnMessageContent.replace(parsedEmoji, emojiName)}\n\n${textDescription}`;
             UtilityLibrary.consoleInfo([[`❓ Emoji mentioned: ${emojiName}`, { color: 'green' }, 'middle']]);
         }
     }
@@ -479,7 +481,6 @@ async function messageQueue() {
 
         let userMentions;
         let userReply;
-        ['draw', 'paint', 'sketch'].forEach(substring => { message.content = message.content.replace(new RegExp(substring, 'g'), 'describe')});
         let imageToGenerate = message.content;
         imageToGenerate = userIdToUsername(client, imageToGenerate);
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userMentions: userMentions } = await processUserMentions(client, message, message, imageToGenerate));
@@ -488,6 +489,7 @@ async function messageQueue() {
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content } = await processEmojis(message, imageToGenerate));
         ({ returnImagePrompt: imageToGenerate, returnMessageContent: message.content, userReply: userReply } = await processReply(client, message, imageToGenerate));
 
+        ['draw', 'paint', 'sketch'].forEach(substring => { message.content = message.content.replace(new RegExp(substring, 'g'), 'describe')});
         let generatedImagePrompt = await AIService.generateImagePrompt(message, imageToGenerate);
         let generatedTextResponse = await AIService.generateTextResponse({ message }, generatedImagePrompt, userMentions, userReply);
 

@@ -312,13 +312,16 @@ async function generateTopicAtHand(message, text) {
 
 async function generateNotCapableResponseCheck(message, text) {
     await message.channel.sendTyping();
+    let yesOrNo;
     const sendTypingInterval = setInterval(() => { message.channel.sendTyping() }, 5000);
     let conversation = [
         {
             role: 'system',
-            content: `
-                You are an expert at determining if a given message indicates an inability to fulfill a request. If the message is similar to "I'm sorry, but I can't provide a response", "I can't fulfill this request", "I'm unable to do that", or "I'm not capable of that", answer with "yes". Otherwise, answer with "no". Do not type anything else besides "yes" or "no".
-            `
+            content: `You will only answer with a yes or no.
+            Do not type anything else besides yes or no.
+            Determine if the message indicates an inability to fulfill a request.
+            If the message is unable to fulfill a request, answer with yes.
+            If the message is not an indication of an inability to fulfill a request, answer with no.`
         },
         {
             role: 'user',
@@ -328,8 +331,14 @@ async function generateNotCapableResponseCheck(message, text) {
     ]
     
     const response = await generateText({ conversation, type: 'OPENAI', performance: 'FAST', tokens: 256 })
+    if (response.toLowerCase().includes('yes')) {
+        yesOrNo = 'yes';
+    } else {
+        yesOrNo = 'no';
+    }
+    console.log(11111111111111111, 'Not capable response:', yesOrNo);
     clearInterval(sendTypingInterval);
-    return response;
+    return yesOrNo;
 }
 
 
@@ -382,7 +391,7 @@ const AIService = {
             let generatedText = await generateText({ conversation, type, performance, tokens });
 
             let notCapable = await generateNotCapableResponseCheck(message, generatedText);
-            if (notCapable.toLowerCase() === 'yes' && imagePrompt) {
+            if (notCapable === 'yes' && imagePrompt) {
                 UtilityLibrary.consoleInfo([[`🎨 generateTextResponse not capable: ${generatedText}`, { color: 'red' }, 'middle']]);
                 generatedText = imagePrompt;
             }
@@ -446,7 +455,7 @@ ${message.content}`,
         ]
         let imagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, imagePrompt);
-        if (notCapable.toLowerCase() === 'yes') {
+        if (notCapable === 'yes') {
             UtilityLibrary.consoleInfo([[`🎨 generateImagePrompt not capable: ${imagePrompt}`, { color: 'red' }, 'middle']]);
             imagePrompt = imageToGenerate ? imageToGenerate : message.content;
         }
@@ -486,7 +495,7 @@ ${message.content}`,
         ]
         let generatedImagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
-        if (notCapable.toLowerCase() === 'yes') {
+        if (notCapable === 'yes') {
             UtilityLibrary.consoleInfo([[`🎨 Image not capable 2: ${generatedImagePrompt}`, { color: 'red' }, 'middle']]);
             generatedImagePrompt = imageToGenerate ? imageToGenerate : message.content;
         }
