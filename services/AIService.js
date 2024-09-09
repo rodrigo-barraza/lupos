@@ -83,12 +83,10 @@ async function generateUsersConversationsSummary(client, message, recent100Messa
 
     let generateCurrentConversationUsersSummary = '';
     const allMessages = await Promise.allSettled(arrayOfUsers);
-    console.log(1111111111, 'allMessages', allMessages)
     if (allMessages.length) {
         generateCurrentConversationUsersSummary = '# Secondary Participants Conversations';
         // generateCurrentConversationUsersSummary += '// These people are also in the chat,
         allMessages.forEach((result) => {
-            console.log(1111111111, 'result', result)
             if (result.status === 'fulfilled') {
                 generateCurrentConversationUsersSummary += `\n${result.value.generatedText}`;
                 usersConversations[result.value.userId] = result.value.generatedText;
@@ -171,10 +169,7 @@ async function generateConversationFromRecentMessages(message, client, alerts, t
 
     const generatedCurrentUserSummary = await generateCurrentUserSummary(client, message, filteredRecent100Messages, userMessages);
     const { generatedUsersConversationsSummary, usersConversations } = await generateUsersConversationsSummary(client, message, filteredRecent100Messages);
-    console.log('usersConversations', usersConversations)
     const assembledCurrentConversationUsers = await MessageService.assembleCurrentConversationUsers(client, message, filteredRecent100Messages, usersConversations);
-
-    console.log('generatedUsersConversationsSummary', generatedUsersConversationsSummary)
 
     const roles = UtilityLibrary.discordRoles(message.member);
     
