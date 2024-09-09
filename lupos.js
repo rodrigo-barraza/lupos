@@ -442,7 +442,6 @@ UtilityLibrary.consoleInfo([[`---`, { bold: true, color: 'green' }]]);
 UtilityLibrary.consoleInfo([[`🤖 Lupos v1.0 starting`, { bold: true, color: 'red' }]]);
     
 async function messageQueue() {
-    console.log(queue.length)
     if (processingMessageQueue || queue.length === 0) {
         console.log('Message Queue is currently processing or empty');
         return;
