@@ -24,7 +24,8 @@ const MessageService = {
             
         }
     },
-    async assembleCurrentConversationUsers(client, message, recentMessages, usersConversations) {
+    async assembleCurrentConversationUsers(client, message, recentMessages, usersConversations, participantUsers) {
+        // This is checking all previous messages
         let text = `# Secondary Participants that are part of the conversation, but not the primary participant`;
         const allUsers = {};
         if (message.guild) {
@@ -38,9 +39,9 @@ const MessageService = {
                 const botMention = UtilityLibrary.discordUserMention(client);
                 const userMention = UtilityLibrary.discordUserMention(recentMessage);
 
-                let username = UtilityLibrary.discordUsername(recentMessage.author);
+                let discordUsername = UtilityLibrary.discordUsername(recentMessage.author);
 
-                uniqueUsernames.push(username);
+                uniqueUsernames.push(discordUsername);
 
                 if (recentMessage.author.id &&
                     uniqueUserMentions.indexOf(userMention) === -1 && userMention !== botMention) {
@@ -49,13 +50,13 @@ const MessageService = {
                         let roles = member ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') : 'No roles';
                         const user = {
                             id: recentMessage.author.id,
-                            username: username,
-                            mention: userMention,
-                            roles: roles
+                            name: discordUsername,
+                            roles: roles,
+                            conversation: usersConversations[recentMessage.author.id]
                         }
-                        allUsers[recentMessage.author.id] = user;
+                        participantUsers.push(user);
                         text += `\n## Participant-${participantsCount}`;
-                        text += `\nName: ${username}`;
+                        text += `\nName: ${discordUsername}`;
                         text += `\nDiscord user ID tag: ${userMention}`;
                         text += `\nTraits, roles and descriptions: ${roles}`;
                         text += `\nHas been talking about: ${usersConversations[recentMessage.author.id]}`;
@@ -64,7 +65,7 @@ const MessageService = {
                 }
             })
         }
-        return text;
+        return { text, participantUsers };
     },
     assembleServerInformation(message) {
         let text = '';

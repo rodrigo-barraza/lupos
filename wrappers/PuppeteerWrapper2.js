@@ -1,23 +1,12 @@
 require('dotenv/config');
 const UtilityLibrary = require('../libraries/UtilityLibrary.js');
-let puppeteer;
-if (process.platform === "win32") { puppeteer = require("puppeteer") } else { puppeteer = require("puppeteer-core") };
-// const puppeteer = require('puppeteer-core');
-const { executablePath } = require('puppeteer-core');
+const puppeteer = require('puppeteer-core');
 const xml2js = require('xml2js');
 const AIService = require('../services/AIService.js');
 
-let puppeteerOptions = {};
-
-if (process.platform === "win32") {
-    puppeteerOptions = { headless: true };
-} else {
-    puppeteerOptions = { headless: true, executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox'] };
-}
-
 const PuppeteerWrapper = {
     async scrapeRSS(url) {
-        const browser = await puppeteer.launch(puppeteerOptions);
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle0' });
 
@@ -35,7 +24,7 @@ const PuppeteerWrapper = {
     },
     async scrapeRSSGoogleNews(message) {
         const url = 'https://news.google.com/rss?gl=US&hl=en-US&ceid=US:en';
-        const browser = await puppeteer.launch({ headless: true, executablePath: executablePath() });
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: 'networkidle0' });
     
@@ -131,7 +120,7 @@ const PuppeteerWrapper = {
         return output;
     },
     async scrapeURL(url) {
-        const browser = await puppeteer.launch(puppeteerOptions);
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto(url);
 
@@ -168,7 +157,7 @@ const PuppeteerWrapper = {
         return result;
     },
     async scrapeTenor(url) {
-        const browser = await puppeteer.launch(puppeteerOptions);
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto(url);
 
@@ -207,7 +196,7 @@ const PuppeteerWrapper = {
     },
     async scrapeGoogleAlerts(searchText) {
         let result;
-        const browser = await puppeteer.launch(puppeteerOptions);
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
         await page.goto('https://www.google.com/alerts');
 

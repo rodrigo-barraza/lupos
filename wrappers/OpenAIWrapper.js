@@ -86,7 +86,6 @@ const OpenAIWrapper = {
         return buffer;
     },
     async generateVisionResponse(imageUrl, text) {
-        console.log('imageUrl', imageUrl);
         const response = await openai.chat.completions.create({
             model: OPENAI_VISION_MODEL,
             messages: [
