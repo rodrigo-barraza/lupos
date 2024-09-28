@@ -489,17 +489,23 @@ const AIService = {
             const mentionedUsers = [];
             const imagesAttached = [];
             const emojisAttached = [];
-            const userIdsInMessage = [];
+            let userIdsInMessage = [];
             const replies = [];
         
             const messageHasMentions = message.content.match(/<@!?\d+>/g) || [];
             const messageHasSelfMention = message.content.match(/(\bme\b|\bi\b)/gi) && message.author;
+            const messageHasYourMention = message.content.match(/(\byourself\b)/gi) && message.author;
+            const messageHasAndYou = message.content.match(/(\band you\b)/gi) && message.author;
+            const messageHasWithYou = message.content.match(/(\bwith you\b)/gi) && message.author;
+            const messageHasUs = message.content.match(/(\bus\b)/gi) && message.author;
         
             const repliedMessage = message.reference ? await message.channel.messages.fetch(message.reference.messageId) : null;
             const repliedMessageHasMentions = repliedMessage?.content.match(/<@!?\d+>/g) || [];
             const repliedMessageHasSelfMention = repliedMessage?.content.match(/(\bme\b)/g) && repliedMessage.author;
         
             const mentions = [...messageHasMentions, ...repliedMessageHasMentions];
+
+            const clientMentionedOnce = mentions.filter(mention => mention === `<@${client.user.id}>`).length === 1;
         
             if (repliedMessage) {
                 const reply = {
@@ -521,11 +527,23 @@ const AIService = {
             if (repliedMessageHasSelfMention) {
                 userIdsInMessage.push(repliedMessage.author.id);
             }
+
+            if (clientMentionedOnce) {
+                userIdsInMessage = userIdsInMessage.filter(userId => userId !== client.user.id);
+            }
+
+            if (messageHasYourMention || messageHasAndYou || messageHasWithYou) {
+                userIdsInMessage.push(client.user.id);
+            }
+
+            if (messageHasUs) {
+                userIdsInMessage.push(client.user.id);
+                userIdsInMessage.push(message.author.id);
+            }
             
             // User descriptions
             if (userIdsInMessage.length) {
                 for (const userId of userIdsInMessage) {
-                    if (userId === client.user.id) { continue }
                     const user = client.users.cache.get(userId);
                     if (user) {
                         const discordUsername = UtilityLibrary.discordUsername(user);
@@ -665,11 +683,6 @@ const AIService = {
                 replies
             } = await checkCurrentMessage(client, message);
 
-            // const { 
-            //     currentMessage,
-            //     currentReply
-            // } = await checkCurrentMessage(client, message);
-
             const { participantUsers } = await checkAllMessages(client, message, recentMessages);
 
             console.log('mentionedUsers', mentionedUsers);
@@ -685,6 +698,11 @@ const AIService = {
                 imagePrompt = imagePrompt.replace(new RegExp(substring, 'g'), 'describe');
                 modifiedMessage = modifiedMessage.replace(new RegExp(substring, 'g'), 'describe');
             });
+
+            // remove 'can you ' from the message, in any capitalization
+            imagePrompt = imagePrompt.replace(/can you /gi, '');
+            modifiedMessage = modifiedMessage.replace(/can you /gi, '');
+
 
             systemPrompt = '';
             systemPrompt += '# Your Information';
@@ -722,7 +740,7 @@ const AIService = {
             }
 
             systemPrompt += `\n\n# How to tag someone`;
-            systemPrompt += `\nTo mention, tag or reply to someone, you do it by typing "<@", followed by the tag number associated to them, and finish with ">".`;
+            systemPrompt += `\nTo mention, tag or reply to someone, you do it by mentioning their Discord user ID tag. For example, to mention me, you would type <@${client.user.id}>.`;
 
             if (replies.length) {
                 systemPrompt += '\n\n# Primary participant is responding to another user while mentioning you in their reply';

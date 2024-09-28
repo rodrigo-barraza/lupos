@@ -197,7 +197,7 @@ function displayAllGuilds() {
 
 function onReady() {
     UtilityLibrary.consoleInfo([[`👌 Logged in as ${client.user.tag}`, { bold: true }]]);
-    AlcoholService.instantiate();
+    // AlcoholService.instantiate();
     MoodService.instantiate();
     displayAllGuilds()
     if (BLABBERMOUTH) {
