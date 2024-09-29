@@ -12,6 +12,7 @@ const LocalAIWrapper = require('../wrappers/LocalAIWrapper.js');
 const BarkAIWrapper = require('../wrappers/BarkAIWrapper.js');
 const AnthrophicWrapper = require('../wrappers/AnthropicWrapper.js');
 const PuppeteerWrapper = require('../wrappers/PuppeteerWrapper.js');
+const MessageConstant = require('../constants/MessageConstants.js');
 
 const {
     LANGUAGE_MODEL_TYPE,
@@ -403,10 +404,6 @@ const AIService = {
                 role: 'system',
                 content: systemPrompt
             });
-            
-            if (DEBUG_MODE) {
-                UtilityLibrary.consoleInfo([[`📄 Conversation:\n${conversation[0].content}`, { color: 'cyan' }, 'middle']]);
-            }
 
             recentMessages.forEach((msg, index) => {
                 if (msg.author.id === client.user.id) {
@@ -486,6 +483,8 @@ const AIService = {
             return generateText;
         }
         async function checkCurrentMessage(client, message) {
+            const customDescriptions = MessageConstant.serverSpecificArray;
+            const mentionedNameDescriptions = [];
             const mentionedUsers = [];
             const imagesAttached = [];
             const emojisAttached = [];
@@ -506,6 +505,8 @@ const AIService = {
             const mentions = [...messageHasMentions, ...repliedMessageHasMentions];
 
             const clientMentionedOnce = mentions.filter(mention => mention === `<@${client.user.id}>`).length === 1;
+
+            const commonWords = ["the", "be", "to", "of", "and", "a", "in", "that", "have", "I", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us", "is", "am", "are", "has", "was", "were", "being", "been", "have", "do", "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because", "as", "until", "while", "of", "at", "by", "for", "with", "about", "against", "between", "into", "through", "during", "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again", "further", "then", "once", "here", "there", "when", "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very", "s", "t", "can", "will", "just", "don", "should", "now", "ll", "re", "ve", "y", "ain", "as", "that", "this", "these", "those", "myself", "ourselves", "you", "yourself", "yourselves", "himself", "herself", "itself", "themselves", "what", "which", "who", "whom", "this", "that", "these", "those", "are", "was", "were", "be", "been", "being", "have", "has", "had", "having", "do", "does", "did", "doing", "will", "would", "should", "can", "could", "ought", "i", "you", "he", "she", "it", "we", "they", "me", "you", "him", "her", "it", "us", "them", "my", "your", "his", "her", "its", "our", "their", "mine", "yours", "his", "hers", "ours", "theirs", "my", "your", "his", "her", "its", "our", "their", "and", "because", "but", "or", "for", "so", "like"];
         
             if (repliedMessage) {
                 const reply = {
@@ -560,6 +561,7 @@ const AIService = {
                                 id: user.id,
                                 name: discordUsername,
                                 roles: roles,
+                                description: mentionedNameDescriptions.find(mentionedName => mentionedName.word.toLowerCase() === discordUsername.toLowerCase())?.description,
                                 avatarDescription: await generateImageDescription(avatarUrl),
                                 bannerDescription: await generateImageDescription(bannerUrl)
                             };
@@ -568,6 +570,38 @@ const AIService = {
                     }
                 }
             }
+
+            const individualWords = message.content.toLowerCase().split(' ');
+            for (const word of individualWords) {
+                // if word starts with '<@' and ends with '>' remove, and check if it is a user
+                if (word.startsWith('<@') && word.endsWith('>')) {
+                    let discordUserName;
+                    if (word !== `<@${client.user.id}>`) {
+                        discordUserName = UtilityLibrary.discordUsername(client.users.cache.get(word.replace(/<@!?/, '').replace('>', '')));
+                    }
+                    if (discordUserName) {
+                        const pattern = new RegExp(`\\b${discordUsername}\\b`, 'i');
+                        const filteredDescriptions = customDescriptions.filter(description => pattern.test(description));
+                        if (filteredDescriptions.length >= 1) {
+                            filteredDescriptions.forEach((description) => {
+                                mentionedNameDescriptions.push( {word: discordUsername, description: description} );
+                            });
+                        }
+                    }
+                }
+
+                const cleanedWord = word.replace(/\?/g, '').replace(/\!/g, '')
+                if (cleanedWord && !commonWords.includes(cleanedWord)) {
+                    const pattern = new RegExp(`\\b${cleanedWord}\\b`, 'i');
+                    const filteredDescriptions = customDescriptions.filter(description => pattern.test(description));
+                    if (filteredDescriptions.length >= 1) {
+                        filteredDescriptions.forEach((description) => {
+                            mentionedNameDescriptions.push( {word: cleanedWord, description: description} );
+                        });
+                    }
+                }
+            }
+            
 
             async function createImagesAttached(images, message) {
                 if (images.length > 0) {
@@ -619,19 +653,8 @@ const AIService = {
                     emojisAttached.push(emojiAttached);
                 }
             }
-
-            // const currentMessage = {
-            //     mentionedUsers,
-            //     imagesAttached,
-            //     emojisAttached
-            // }
-
-            // const currentReply = {
-                
-            // }
         
-            return { mentionedUsers, imagesAttached, emojisAttached, replies };
-            // return { currentMessage, currentMessageReply };
+            return { mentionedUsers, imagesAttached, emojisAttached, replies, mentionedNameDescriptions };
         }
         async function checkAllMessages(client, message, recentMessages) {
             const participantUsers = [];
@@ -680,16 +703,11 @@ const AIService = {
                 mentionedUsers, 
                 imagesAttached, 
                 emojisAttached,
-                replies
+                replies,
+                mentionedNameDescriptions
             } = await checkCurrentMessage(client, message);
 
             const { participantUsers } = await checkAllMessages(client, message, recentMessages);
-
-            console.log('mentionedUsers', mentionedUsers);
-            console.log('participantUsers', participantUsers);
-            console.log('imagesAttached', imagesAttached);
-            console.log('emojisAttached', emojisAttached);
-            console.log('replies', replies);
 
             imagePrompt = String(message.content);
             modifiedMessage = String(message.content);
@@ -731,6 +749,7 @@ const AIService = {
                 systemPrompt += `\n\n# Server Information`
                 systemPrompt += `\nYou are in the discord server called ${message.guild.name}, with ${message.guild.memberCount} total members, and ${UtilityLibrary.discordBotsAmount(message)} bots.`
             }
+
             if (message.channel.name) {
                 systemPrompt += `\n\n# Channel Information`
                 systemPrompt += `\nYou are in the channel called: ${message.channel.name}.`;
@@ -760,7 +779,9 @@ const AIService = {
                 mentionedUsers.forEach((mentionedUser, index) => {
                     systemPrompt += `\nMentioned User ${index + 1}: ${mentionedUser.name}`;
                     systemPrompt += `\n${mentionedUser.name}'s Discord user ID tag: <@${mentionedUser.id}>`;
+
                     systemPrompt += `\n${mentionedUser.name}'s roles: ${mentionedUser.roles}`;
+                    systemPrompt += `\n${mentionedUser.name}'s description: ${mentionedUser.description}`;
                     systemPrompt += `\n${mentionedUser.name}'s avatar description: ${mentionedUser.avatarDescription}`;
                     systemPrompt += `\n${mentionedUser.name}'s banner description: ${mentionedUser.bannerDescription}`;
 
@@ -778,6 +799,13 @@ const AIService = {
                     imagePrompt = imagePrompt.replace(/\bI\b/gi, `I ${userVisualDescription}`);
 
                     modifiedMessage = modifiedMessage.replace(`<@${mentionedUser.id}>`, mentionedUser.name);
+                });
+            }
+            if (mentionedNameDescriptions.length) {
+                modifiedMessage += '\n\n# Relevant to this response';
+                mentionedNameDescriptions.forEach((mentionedNameDescription, index) => {
+                    modifiedMessage += `\n${mentionedNameDescription.description}`;
+                    imagePrompt += `\n\n${mentionedNameDescription.description}.`;
                 });
             }
             if (emojisAttached.length) {
@@ -838,12 +866,13 @@ const AIService = {
             systemPrompt += `\n\n${MessageService.assemblePersonalityMessage()}`;
             // systemPrompt += `\n\n${MessageService.assembleServerSpecificMessage(message.guild?.id)}`;
 
-            
 
-            console.log(10000, 'system prompt:', systemPrompt);
-            console.log(20000, 'image prompt:', imagePrompt)
-            console.log(30000, 'modified message:', modifiedMessage)
-            console.log('-----------------')
+            
+            if (DEBUG_MODE) {
+                UtilityLibrary.consoleInfo([[`🧠 System Prompt:\n${systemPrompt}`, { color: 'blue' }, 'middle']]);
+                UtilityLibrary.consoleInfo([[`🏞️ Image Prompt:\n${imagePrompt}`, { color: 'cyan' }, 'middle']]);
+                UtilityLibrary.consoleInfo([[`💬 Modified Message:\n${modifiedMessage}`, { color: 'blue' }, 'middle']]);
+            }
 
             message.content = modifiedMessage;
             
@@ -862,9 +891,8 @@ const AIService = {
             if (DEBUG_MODE) {
                 UtilityLibrary.consoleInfo([[`🎨 generateTextResponse output:\n${generatedText}`, { color: 'green' }, 'middle']]);
             }
-        } catch (error) { 
-            console.log(error)
-            UtilityLibrary.consoleInfo([[`📝 generateTextResponse failed`, { color: 'red' }, 'middle']]);
+        } catch (error) {
+            UtilityLibrary.consoleInfo([[`📝 generateTextResponse failed:\n${error}`, { color: 'red' }, 'middle']]);
         }
 
         return { generatedText, imagePrompt };
@@ -901,7 +929,12 @@ const AIService = {
                 Prompt 2: ${textResponse}`,
             }
         ]
-        console.log(888888888, conversation[1].content)
+
+        if (DEBUG_MODE) {
+            UtilityLibrary.consoleInfo([[`🎨 Image prompt 1:\n${imagePrompt}`, { color: 'cyan' }, 'middle']]);
+            UtilityLibrary.consoleInfo([[`🎨 Image prompt 2:\n${textResponse}`, { color: 'blue' }, 'middle']]);
+        }
+
         let generatedImagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
         let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
         // if (notCapable === 'no') {
