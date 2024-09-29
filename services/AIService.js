@@ -24,7 +24,7 @@ const {
     DEBUG_MODE
 } = require('../config.json');
 
-async function generateText({ conversation, type=LANGUAGE_MODEL_TYPE, performance='FAST', tokens }) {
+async function generateText({ conversation, type=LANGUAGE_MODEL_TYPE, performance='FAST', tokens=240 }) {
     let text;
     let currentTime = new Date().getTime();
     if (type === 'OPENAI') {
@@ -723,7 +723,7 @@ const AIService = {
             UtilityLibrary.consoleInfo([[`🎨 Image prompt 2:\n${textResponse}`, { color: 'blue' }, 'middle']]);
         }
 
-        let generatedImagePrompt = await generateText({ conversation, type: IMAGE_PROMPT_LANGUAGE_MODEL_TYPE, performance: IMAGE_PROMPT_LANGUAGE_MODEL_PERFORMANCE, tokens: IMAGE_PROMPT_LANGUAGE_MODEL_MAX_TOKENS })
+        let generatedImagePrompt = await generateText({ conversation })
         let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
         // if (notCapable === 'no') {
         //     UtilityLibrary.consoleInfo([[`🎨 Image not capable 2: ${generatedImagePrompt}`, { color: 'red' }, 'middle']]);
