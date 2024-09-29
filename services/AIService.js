@@ -514,7 +514,8 @@ const AIService = {
 
 
             systemPrompt = '';
-            systemPrompt += '# Your Information';
+            systemPrompt += `${MessageService.assembleAssistantMessage()}`;
+            systemPrompt += `\n\n# Your Information`;
             systemPrompt += `\nYour Name: ${client.user.displayName}`;
             systemPrompt += `\nYour Discord user ID tag: <@${client.user.id}>`;
             systemPrompt += `\n\n# Date and Time`;
@@ -595,7 +596,7 @@ const AIService = {
             if (mentionedNameDescriptions.length) {
                 modifiedMessage += '\n\n# Relevant to this response';
                 mentionedNameDescriptions.forEach((mentionedNameDescription, index) => {
-                    modifiedMessage += `\n${mentionedNameDescription.description}`;
+                    systemPrompt += `\n${mentionedNameDescription.description}`;
                     imagePrompt += `\n\n${mentionedNameDescription.description}.`;
                 });
             }
@@ -652,7 +653,6 @@ const AIService = {
             //     systemPrompt += '\n```';
             // }
 
-            systemPrompt += `\n\n${MessageService.assembleAssistantMessage()}`;
             systemPrompt += `\n\n${MessageService.assembleBackstoryMessage(message.guild?.id)}`;
             systemPrompt += `\n\n${MessageService.assemblePersonalityMessage()}`;
             
@@ -698,13 +698,8 @@ const AIService = {
         let conversation = [
             {
                 role: 'system',
-                content: `You are given two prompts; an image and text prompt. You will combine these two prompts into a single cohesive image prompt, while keeping the original details as much as possible. Do not omit any details from the visual image prompt, as this is the answer to the user's question.
+                content: `You are given two prompts; an image and text prompt. Always combine both prompts into a single cohesive image prompt, while keeping the all details of both. Do not omit any details from either prompt, as this is the answer to the user's question. You will also make sure to answer any questions that are asked in the text prompt.
 
-                Visual image prompt: "${imagePrompt}".
-                Descriptive text prompt: "${textResponse}".
-                
-                Keep as much original details as possible.
-                Try to answer any questions that are asked in the text.
                 Do not make self-referential comments or break the fourth wall.
                 Do not answer with a question.`
             },
@@ -712,9 +707,10 @@ const AIService = {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
                 content: `Combine these two prompts into a cohesive image prompt, while keeping the original details as much as possible.
-                Prompt 1: ${imagePrompt}
+
+                Image prompt: ${imagePrompt}
                 
-                Prompt 2: ${textResponse}`,
+                Text prompt: ${textResponse}`,
             }
         ]
 
