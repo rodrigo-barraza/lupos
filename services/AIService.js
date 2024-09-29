@@ -366,11 +366,11 @@ const AIService = {
             for (const word of individualWords) {
                 // if word starts with '<@' and ends with '>' remove, and check if it is a user
                 if (word.startsWith('<@') && word.endsWith('>')) {
-                    let discordUserName;
+                    let discordUsername;
                     if (word !== `<@${client.user.id}>`) {
-                        discordUserName = UtilityLibrary.discordUsername(client.users.cache.get(word.replace(/<@!?/, '').replace('>', '')));
+                        discordUsername = UtilityLibrary.discordUsername(client.users.cache.get(word.replace(/<@!?/, '').replace('>', '')));
                     }
-                    if (discordUserName) {
+                    if (discordUsername) {
                         const pattern = new RegExp(`\\b${discordUsername}\\b`, 'i');
                         const filteredDescriptions = customDescriptions.filter(description => pattern.test(description));
                         if (filteredDescriptions.length >= 1) {
