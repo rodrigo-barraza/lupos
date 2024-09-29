@@ -87,15 +87,6 @@ const MessageService = {
         dateMessage += `\nThe current date is ${moment().format('MMMM Do YYYY')}, day is ${moment().format('dddd')}, and time is ${moment().format('h:mm A')} in PST.`;
         return dateMessage;
     },
-    assembleServerSpecificMessage(guildId) {
-        if (guildId) {
-            let generatedMessage = '';
-            if (guildId === GUILD_ID_LONEWOLF || guildId === GUILD_ID_WHITEMANE) {
-                generatedMessage = MessageConstant.serverSpecificMessageWhitemane
-            }
-            return generatedMessage;
-        }
-    },
     assembleAssistantMessage() {
         return ASSISTANT_MESSAGE ? ASSISTANT_MESSAGE : MessageConstant.assistantMessage
     },
