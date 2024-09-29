@@ -698,7 +698,11 @@ const AIService = {
         let conversation = [
             {
                 role: 'system',
-                content: `You are given two prompts; an image and text prompt. Always combine both prompts into a single cohesive image prompt, while keeping the all details of both. Do not omit any details from either prompt, as this is the answer to the user's question. You will also make sure to answer any questions that are asked in the text prompt.
+                content: `You are given two prompts; an image and text prompt. Always combine both prompts into a single cohesive image description, while keeping the all details of both. Do not omit any details from either prompt, as this is the answer to the user's question. You will also make sure to answer any questions that are asked in the text prompt.
+
+                The description should be detailed, creative, and what you would see in an art gallery.
+
+                The description should include concise text in quotes that fits the theme of the image, and the text prompt. The text should be in quotes and should be a part of the image description.
 
                 Do not make self-referential comments or break the fourth wall.
                 Do not answer with a question.`
@@ -706,7 +710,7 @@ const AIService = {
             {
                 role: 'user',
                 name: UtilityLibrary.getUsernameNoSpaces(message),
-                content: `Combine these two prompts into a cohesive image prompt, while keeping the original details as much as possible.
+                content: `Combine these the image and text prompts into a cohesive visual description, while keeping the all details.
 
                 Image prompt: ${imagePrompt}
                 
