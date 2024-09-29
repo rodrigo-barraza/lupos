@@ -724,7 +724,7 @@ const AIService = {
         }
 
         let generatedImagePrompt = await generateText({ conversation })
-        let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
+        // let notCapable = await generateNotCapableResponseCheck(message, generatedImagePrompt);
         // if (notCapable === 'no') {
         //     UtilityLibrary.consoleInfo([[`🎨 Image not capable 2: ${generatedImagePrompt}`, { color: 'red' }, 'middle']]);
         //     generatedImagePrompt = imageToGenerate ? imageToGenerate : message.content;
