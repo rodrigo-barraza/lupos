@@ -381,9 +381,10 @@ const AIService = {
                     }
                 }
 
-                const cleanedWord = word.replace(/\?/g, '').replace(/\!/g, '')
+                // remove all special characters from word
+                const cleanedWord = word.replace(/[^a-zA-Z0-9]/g, '');
                 if (cleanedWord && !commonWords.includes(cleanedWord)) {
-                    const pattern = new RegExp(`\\b${cleanedWord}\\b`, 'i');
+                    const pattern = new RegExp('\\b' + cleanedWord + '\\b', 'i');
                     const filteredDescriptions = customDescriptions.filter(description => pattern.test(description));
                     if (filteredDescriptions.length >= 1) {
                         filteredDescriptions.forEach((description) => {
