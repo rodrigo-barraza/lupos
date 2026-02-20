@@ -23,16 +23,8 @@ const mode = args.find(arg => arg.startsWith('mode='))?.split('=')[1];
 
 function main() {
     try {
-        console.log(...LogFormatter.luposInitializing());
-        if (mode === 'clone:messages') {
-            DiscordService.cloneMessages();
-        } else if (mode === 'delete:duplicates') {
-            DiscordService.deleteDuplicateMessages();
-        } else if (mode === 'reports') {
-            DiscordService.initializeBotLuposReports();
-        } else {
-            DiscordService.initializeBotLupos();
-        }
+        console.log("Initializing Sticker Vending Machine...");
+        DiscordService.initializeBotLupos();
 
 
         // DISCORD REPORTING: LUPOS
